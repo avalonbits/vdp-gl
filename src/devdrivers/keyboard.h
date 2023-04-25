@@ -39,7 +39,6 @@
 
 #include "fabglconf.h"
 #include "comdrivers/ps2device.h"
-#include "fabui.h"
 #include "kbdlayouts.h"
 #include "codepages.h"
 
@@ -65,7 +64,7 @@ namespace fabgl {
  * Example:
  *
  *     fabgl::Keyboard Keyboard;
- *     
+ *
  *     // Setup pins GPIO33 for CLK and GPIO32 for DATA
  *     Keyboard.begin(GPIO_NUM_33, GPIO_NUM_32);  // clk, dat
  *
@@ -138,15 +137,6 @@ public:
    *                      and Keyboard.getNextVirtualKey(). I False destroys the queue.
    */
   void enableVirtualKeys(bool generateVirtualKeys, bool createVKQueue);
-
-  /**
-   * @brief Sets current UI app
-   *
-   * To use this generateVirtualKeys must be true in begin().
-   *
-   * @param app The UI app where to send keyboard events
-   */
-  void setUIApp(uiApp * app) { m_uiApp = app; }
 
   /**
    * @brief Sends a Reset command to the keyboard.
@@ -427,8 +417,6 @@ private:
   uint8_t                   m_scancodeSet;
 
   KeyboardLayout const *    m_layout;
-
-  uiApp *                   m_uiApp;
 
   bool                      m_CTRL;
   bool                      m_LALT;

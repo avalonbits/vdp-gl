@@ -195,7 +195,7 @@
 #define VGA_512x384_60Hz "\"512x384@60Hz\" 32.5 512 524 592 672 384 385 388 403 -HSync -VSync DoubleScan"
 
 /** Modeline for 640x480@60Hz resolution */
-#define QSVGA_640x480_60Hz "\"640x480@60Hz\" 25.175 640 656 752 800 480 490 492 525 -HSync -VSync"
+#define VGA_640x480_60Hz "\"640x480@60Hz\" 25.175 640 656 752 800 480 490 492 525 -HSync -VSync"
 
 /** Modeline for 640x512@60Hz resolution (for pixel perfect 1280x1024 double scan resolution) */
 #define QSVGA_640x512_60Hz "\"640x512@60Hz\" 54     640 664 720 844 512 513 515 533 -HSync -VSync DoubleScan"

@@ -46,6 +46,7 @@
 #include "esp_intr_alloc.h"
 
 
+#include "fabfonts.h"
 #include "fabutils.h"
 #include "terminal.h"
 #include "devdrivers/mouse.h"
@@ -4483,7 +4484,7 @@ void Terminal::consumeFabGLGraphicsSeq()
     //    R (text)           : red (0..255) when FORMAT is "MASK"
     //    G (text)           : green (0..255) when FORMAT is "MASK"
     //    B (text)           : blue (0..255) when FORMAT is "MASK"
-    //    DATA (text)        : 2 digits hex number    
+    //    DATA (text)        : 2 digits hex number
     int sprite = extGetIntParam();
     extGetByteParam();
     int width = extGetIntParam();
@@ -4585,7 +4586,7 @@ void Terminal::keyboardReaderTask(void * pvParameters)
     if (term->m_keyboard->getNextVirtualKey(&item)) {
 
       if (term->isActive()) {
-      
+
         term->onVirtualKey(&item.vk, item.down);
         term->onVirtualKeyItem(&item);
 
@@ -4615,7 +4616,7 @@ void Terminal::keyboardReaderTask(void * pvParameters)
             // !keyDown
             term->m_lastPressedKey = VK_NONE;
           }
-          
+
         }
 
       } else {

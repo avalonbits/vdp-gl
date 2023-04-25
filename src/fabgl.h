@@ -318,9 +318,6 @@
 #include "dispdrivers/vga4controller.h"
 #include "dispdrivers/vga8controller.h"
 #include "dispdrivers/vga16controller.h"
-#include "dispdrivers/vgadirectcontroller.h"
-#include "fabui.h"
-#include "inputbox.h"
 #include "comdrivers/ps2controller.h"
 #include "comdrivers/tsi2c.h"
 #include "devdrivers/keyboard.h"
@@ -363,7 +360,6 @@ using fabgl::KbdMode;
 using fabgl::VirtualKey;
 using fabgl::VirtualKeyItem;
 using fabgl::FileBrowser;
-using fabgl::ModalWindowState;
 using fabgl::Canvas;
 using fabgl::PixelFormat;
 using fabgl::RGB222;
@@ -379,7 +375,3 @@ using fabgl::CharStyle;
 using fabgl::TerminalTransition;
 using fabgl::SupportedLayouts;
 using fabgl::CoreUsage;
-using fabgl::InputResult;
-using fabgl::InputBox;
-
-
