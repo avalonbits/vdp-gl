@@ -1,12 +1,11 @@
 {
-  "name": "FabGL",
+  "name": "vdp-gl",
   "keywords": "sprite, terminal, VT100, ANSI, keyboard, mouse, VGA, PAL, NTSC, Composite, SSD1306, ILI9341, ST7789, OLED, DS3231, I2S, I2C, game, engine, PS2, graphics, audio, sound, font, arduino, ESP32, display, vic20, emulator, 8086, z80, 6502",
-  "description": "ESP32 VGA Controller, Composite PAL/NTSC Controller, PS/2 Mouse and Keyboard Controller, Graphics Library, Sound Engine, Game Engine and ANSI/VT Terminal",
-  "homepage": "http://www.fabglib.org",
+  "description": "Fork of FabGL 1.0.8 customized for agon-vdp.",
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/fdivitto/FabGL.git"
+    "url": "https://github.com/avalonbits/vdp-gl.git"
   },
   "authors":
   [
@@ -14,10 +13,16 @@
       "name": "Fabrizio Di Vittorio",
       "email": "fdivitto2013@gmail.com",
       "url": "https://github.com/fdivitto",
+      "maintainer": false
+    },
+    {
+      "name": "Igor Chaves Cananea",
+      "email": "icc@avalonbits.com",
+      "url": "https://github.com/avalonbits",
       "maintainer": true
     }
   ],
-  "version": "1.0.8",
+  "version": "1.0.0",
   "frameworks": ["espidf", "arduino"],
   "platforms": "espressif32",
   "headers": "fabgl.h",
