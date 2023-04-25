@@ -75,18 +75,20 @@ void Canvas::setClippingRect(Rect const & rect)
 
 Rect Canvas::getClippingRect()
 {
-  if (m_clippingRect == INVALIDRECT)
+  if (m_clippingRect == INVALIDRECT) {
     m_clippingRect = Rect(0, 0, getWidth() - 1, getHeight() - 1);
+  }
   return m_clippingRect;
 }
 
 
 void Canvas::waitCompletion(bool waitVSync)
 {
-  if (waitVSync)
+  if (waitVSync) {
     m_displayController->primitivesExecutionWait();   // wait on VSync normal processing
-  else
+  } else {
     m_displayController->processPrimitives();         // process right now!
+  }
 }
 
 
