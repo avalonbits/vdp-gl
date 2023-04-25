@@ -127,24 +127,6 @@ public:
   void operator=(VGABaseController const&)    = delete;
 
   /**
-   * @brief This is the 8 colors (5 GPIOs) initializer.
-   *
-   * One GPIO per channel, plus horizontal and vertical sync signals.
-   *
-   * @param redGPIO GPIO to use for red channel.
-   * @param greenGPIO GPIO to use for green channel.
-   * @param blueGPIO GPIO to use for blue channel.
-   * @param HSyncGPIO GPIO to use for horizontal sync signal.
-   * @param VSyncGPIO GPIO to use for vertical sync signal.
-   *
-   * Example:
-   *
-   *     // Use GPIO 22 for red, GPIO 19 for green, GPIO 5 for blue, GPIO 23 for HSync and GPIO 15 for VSync
-   *     VGAController.begin(GPIO_NUM_22, GPIO_NUM_19, GPIO_NUM_5, GPIO_NUM_23, GPIO_NUM_15);
-   */
-  void begin(gpio_num_t redGPIO, gpio_num_t greenGPIO, gpio_num_t blueGPIO, gpio_num_t HSyncGPIO, gpio_num_t VSyncGPIO);
-
-  /**
    * @brief This is the 64 colors (8 GPIOs) initializer.
    *
    * Two GPIOs per channel, plus horizontal and vertical sync signals.

@@ -77,35 +77,25 @@ void VGABaseController::init()
   m_GPIOStream.begin();
 }
 
-
-// initializer for 8 colors configuration
-void VGABaseController::begin(gpio_num_t redGPIO, gpio_num_t greenGPIO, gpio_num_t blueGPIO, gpio_num_t HSyncGPIO, gpio_num_t VSyncGPIO)
+// initializer for 64 colors configuration
+void VGABaseController::begin(gpio_num_t red1GPIO, gpio_num_t red0GPIO, gpio_num_t green1GPIO, gpio_num_t green0GPIO, gpio_num_t blue1GPIO, gpio_num_t blue0GPIO, gpio_num_t HSyncGPIO, gpio_num_t VSyncGPIO)
 {
   init();
 
   // GPIO configuration for bit 0
-  setupGPIO(redGPIO,   VGA_RED_BIT,   GPIO_MODE_OUTPUT);
-  setupGPIO(greenGPIO, VGA_GREEN_BIT, GPIO_MODE_OUTPUT);
-  setupGPIO(blueGPIO,  VGA_BLUE_BIT,  GPIO_MODE_OUTPUT);
-
-  // GPIO configuration for VSync and HSync
-  setupGPIO(HSyncGPIO, VGA_HSYNC_BIT, GPIO_MODE_OUTPUT);
-  setupGPIO(VSyncGPIO, VGA_VSYNC_BIT, GPIO_MODE_OUTPUT);
-
-  RGB222::lowBitOnly = true;
-  m_bitsPerChannel = 1;
-}
-
-
-// initializer for 64 colors configuration
-void VGABaseController::begin(gpio_num_t red1GPIO, gpio_num_t red0GPIO, gpio_num_t green1GPIO, gpio_num_t green0GPIO, gpio_num_t blue1GPIO, gpio_num_t blue0GPIO, gpio_num_t HSyncGPIO, gpio_num_t VSyncGPIO)
-{
-  begin(red0GPIO, green0GPIO, blue0GPIO, HSyncGPIO, VSyncGPIO);
+  setupGPIO(red0GPIO,   VGA_RED_BIT,   GPIO_MODE_OUTPUT);
+  setupGPIO(green0GPIO, VGA_GREEN_BIT, GPIO_MODE_OUTPUT);
+  setupGPIO(blue0GPIO,  VGA_BLUE_BIT,  GPIO_MODE_OUTPUT);
 
   // GPIO configuration for bit 1
   setupGPIO(red1GPIO,   VGA_RED_BIT + 1,   GPIO_MODE_OUTPUT);
   setupGPIO(green1GPIO, VGA_GREEN_BIT + 1, GPIO_MODE_OUTPUT);
   setupGPIO(blue1GPIO,  VGA_BLUE_BIT + 1,  GPIO_MODE_OUTPUT);
+
+  // GPIO configuration for VSync and HSync
+  setupGPIO(HSyncGPIO, VGA_HSYNC_BIT, GPIO_MODE_OUTPUT);
+  setupGPIO(VSyncGPIO, VGA_VSYNC_BIT, GPIO_MODE_OUTPUT);
+
 
   RGB222::lowBitOnly = false;
   m_bitsPerChannel = 2;
@@ -262,58 +252,70 @@ bool VGABaseController::convertModelineToTimings(char const * modeline, VGATimin
     timings->multiScanBlack = 0;
     timings->HStartingBlock = VGAScanStart::VisibleArea;
 
-    // get [(+HSync | -HSync) (+VSync | -VSync)]
-    char const * pc = modeline + pos;
-    for (; *pc; ++pc) {
-      if (*pc == '+' || *pc == '-') {
-        if (!HSyncPol) {
-          timings->HSyncLogic = HSyncPol = *pc;
-        } else if (!VSyncPol) {
-          timings->VSyncLogic = VSyncPol = *pc;
-          break;
-        }
-      }
-    }
-
-    // get [DoubleScan | QuadScan] [FrontPorchBegins | SyncBegins | BackPorchBegins | VisibleBegins] [MultiScanBlank]
-    // actually this gets only the first character
-    while (*pc) {
+    // actually this checks just the first character
+    auto pc  = modeline + pos;
+    auto end = pc + strlen(modeline);
+    while (*pc && pc < end) {
       switch (*pc) {
+        // parse [(+HSync | -HSync) (+VSync | -VSync)]
+        case '+':
+        case '-':
+          if (!HSyncPol)
+            timings->HSyncLogic = HSyncPol = *pc;
+          else if (!VSyncPol)
+            timings->VSyncLogic = VSyncPol = *pc;
+          pc += 6;
+          break;
+        // parse [DoubleScan | QuadScan]
+        // DoubleScan
         case 'D':
         case 'd':
           timings->scanCount = 2;
+          pc += 10;
           break;
+        // QuadScan
         case 'Q':
         case 'q':
           timings->scanCount = 4;
+          pc += 8;
           break;
+        // parse [FrontPorchBegins | SyncBegins | BackPorchBegins | VisibleBegins] [MultiScanBlank]
+        // FrontPorchBegins
         case 'F':
         case 'f':
           timings->HStartingBlock = VGAScanStart::FrontPorch;
+          pc += 16;
           break;
+        // SyncBegins
         case 'S':
         case 's':
           timings->HStartingBlock = VGAScanStart::Sync;
+          pc += 10;
           break;
+        // BackPorchBegins
         case 'B':
         case 'b':
           timings->HStartingBlock = VGAScanStart::BackPorch;
+          pc += 15;
           break;
+        // VisibleBegins
         case 'V':
         case 'v':
           timings->HStartingBlock = VGAScanStart::VisibleArea;
+          pc += 13;
           break;
+        // MultiScanBlank
         case 'M':
         case 'm':
           timings->multiScanBlack = 1;
+          pc += 14;
           break;
         case ' ':
           ++pc;
-          continue;
+          break;
+        default:
+          return false;
       }
-      ++pc;
-      while (*pc && *pc != ' ')
-        ++pc;
     }
 
     return true;
