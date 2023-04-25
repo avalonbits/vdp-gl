@@ -51,9 +51,7 @@ Mouse::Mouse()
     m_movementAcceleration(180),
     m_wheelAcceleration(60000),
     m_absoluteQueue(nullptr),
-    m_updateDisplayController(nullptr),
-    m_uiApp(nullptr)
-{
+    m_updateDisplayController(nullptr) {
 }
 
 
@@ -191,7 +189,7 @@ bool Mouse::getNextDelta(MouseDelta * delta, int timeOutMS, bool requestResendOn
 }
 
 
-void Mouse::setupAbsolutePositioner(int width, int height, bool createAbsolutePositionsQueue, BitmappedDisplayController * updateDisplayController, uiApp * app)
+void Mouse::setupAbsolutePositioner(int width, int height, bool createAbsolutePositionsQueue, BitmappedDisplayController * updateDisplayController)
 {
   if (m_area != Size(width, height)) {
     m_area                  = Size(width, height);
@@ -206,8 +204,6 @@ void Mouse::setupAbsolutePositioner(int width, int height, bool createAbsolutePo
 
   m_updateDisplayController = updateDisplayController;
 
-  m_uiApp = app;
-
   if (createAbsolutePositionsQueue && m_absoluteQueue == nullptr) {
     m_absoluteQueue = xQueueCreate(FABGLIB_MOUSE_EVENTS_QUEUE_SIZE, sizeof(MouseStatus));
   }
@@ -217,7 +213,7 @@ void Mouse::setupAbsolutePositioner(int width, int height, bool createAbsolutePo
     m_updateDisplayController->setMouseCursorPos(m_status.X, m_status.Y);
   }
 
-  m_absoluteUpdate = (m_updateDisplayController || createAbsolutePositionsQueue || m_uiApp);
+  m_absoluteUpdate = (m_updateDisplayController || createAbsolutePositionsQueue);
 }
 
 
@@ -229,7 +225,6 @@ void Mouse::terminateAbsolutePositioner()
   }
   m_absoluteUpdate = false;
   m_updateDisplayController = nullptr;
-  m_uiApp = nullptr;
 }
 
 
@@ -316,52 +311,9 @@ void Mouse::mouseUpdateTask(void * arg)
         if (mouse->m_absoluteQueue) {
           xQueueSend(mouse->m_absoluteQueue, &mouse->m_status, 0);
         }
-
-        if (mouse->m_uiApp) {
-          // generate uiApp events
-          if (mouse->m_prevStatus.X != mouse->m_status.X || mouse->m_prevStatus.Y != mouse->m_status.Y) {
-            // X and Y movement: UIEVT_MOUSEMOVE
-            uiEvent evt = uiEvent(nullptr, UIEVT_MOUSEMOVE);
-            evt.params.mouse.status = mouse->m_status;
-            evt.params.mouse.changedButton = 0;
-            mouse->m_uiApp->postEvent(&evt);
-          }
-          if (mouse->m_status.wheelDelta != 0) {
-            // wheel movement: UIEVT_MOUSEWHEEL
-            uiEvent evt = uiEvent(nullptr, UIEVT_MOUSEWHEEL);
-            evt.params.mouse.status = mouse->m_status;
-            evt.params.mouse.changedButton = 0;
-            mouse->m_uiApp->postEvent(&evt);
-          }
-          if (mouse->m_prevStatus.buttons.left != mouse->m_status.buttons.left) {
-            // left button: UIEVT_MOUSEBUTTONDOWN, UIEVT_MOUSEBUTTONUP
-            uiEvent evt = uiEvent(nullptr, mouse->m_status.buttons.left ? UIEVT_MOUSEBUTTONDOWN : UIEVT_MOUSEBUTTONUP);
-            evt.params.mouse.status = mouse->m_status;
-            evt.params.mouse.changedButton = 1;
-            mouse->m_uiApp->postEvent(&evt);
-          }
-          if (mouse->m_prevStatus.buttons.middle != mouse->m_status.buttons.middle) {
-            // middle button: UIEVT_MOUSEBUTTONDOWN, UIEVT_MOUSEBUTTONUP
-            uiEvent evt = uiEvent(nullptr, mouse->m_status.buttons.middle ? UIEVT_MOUSEBUTTONDOWN : UIEVT_MOUSEBUTTONUP);
-            evt.params.mouse.status = mouse->m_status;
-            evt.params.mouse.changedButton = 2;
-            mouse->m_uiApp->postEvent(&evt);
-          }
-          if (mouse->m_prevStatus.buttons.right != mouse->m_status.buttons.right) {
-            // right button: UIEVT_MOUSEBUTTONDOWN, UIEVT_MOUSEBUTTONUP
-            uiEvent evt = uiEvent(nullptr, mouse->m_status.buttons.right ? UIEVT_MOUSEBUTTONDOWN : UIEVT_MOUSEBUTTONUP);
-            evt.params.mouse.status = mouse->m_status;
-            evt.params.mouse.changedButton = 3;
-            mouse->m_uiApp->postEvent(&evt);
-          }
-        }
-
       }
-
     } else {
-
       xQueueOverwrite(mouse->m_receivedPacket, &mousePacket);
-
     }
 
   }

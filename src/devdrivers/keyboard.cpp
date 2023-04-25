@@ -81,8 +81,6 @@ void Keyboard::begin(bool generateVirtualKeys, bool createVKQueue, int PS2Port)
   m_capsLockLED    = false;
   m_scrollLockLED  = false;
 
-  m_uiApp = nullptr;
-
   reset();
 
   enableVirtualKeys(generateVirtualKeys, createVKQueue);
@@ -534,11 +532,12 @@ void Keyboard::injectVirtualKey(VirtualKeyItem const & item, bool insert)
 
   // has VK queue? Insert VK into it.
   if (m_virtualKeyQueue) {
-    auto ticksToWait = (m_uiApp ? 0 : portMAX_DELAY);  // 0, and not portMAX_DELAY to avoid uiApp locks
-    if (insert)
+    auto ticksToWait = portMAX_DELAY;
+    if (insert) {
       xQueueSendToFront(m_virtualKeyQueue, &item, ticksToWait);
-    else
+    } else {
       xQueueSendToBack(m_virtualKeyQueue, &item, ticksToWait);
+    }
   }
 }
 
@@ -562,24 +561,11 @@ void Keyboard::injectVirtualKey(VirtualKey virtualKey, bool keyDown, bool insert
 }
 
 
-// inject a virtual key item into virtual key queue calling injectVirtualKey() and into m_uiApp
+// inject a virtual key item into virtual key queue calling injectVirtualKey().
 void Keyboard::postVirtualKeyItem(VirtualKeyItem const & item)
 {
   // add into m_virtualKeyQueue and update m_VKMap
   injectVirtualKey(item, false);
-
-  // need to send events to uiApp?
-  if (m_uiApp) {
-    uiEvent evt = uiEvent(nullptr, item.down ? UIEVT_KEYDOWN : UIEVT_KEYUP);
-    evt.params.key.VK    = item.vk;
-    evt.params.key.ASCII = item.ASCII;
-    evt.params.key.LALT  = item.LALT;
-    evt.params.key.RALT  = item.RALT;
-    evt.params.key.CTRL  = item.CTRL;
-    evt.params.key.SHIFT = item.SHIFT;
-    evt.params.key.GUI   = item.GUI;
-    m_uiApp->postEvent(&evt);
-  }
 }
 
 
