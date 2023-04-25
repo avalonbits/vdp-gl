@@ -107,6 +107,8 @@ public:
   // abstract method of BitmappedDisplayController
   NativePixelFormat nativePixelFormat()                 { return m_nativePixelFormat; }
 
+  // Should be called after the palette is updated.
+  void updateRGB2PaletteLUT();
 
 protected:
 
@@ -114,7 +116,6 @@ protected:
 
   virtual void setupDefaultPalette() = 0;
 
-  void updateRGB2PaletteLUT();
   void calculateAvailableCyclesForDrawings();
   static void primitiveExecTask(void * arg);
 
