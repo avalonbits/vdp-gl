@@ -2015,6 +2015,9 @@ void Terminal::int_setTerminalType(TermType value)
     case TermType::ANSILegacy:
       int_setTerminalType(&term_ANSILegacy);
       break;
+    case TermType::ADDS25:
+      int_setTerminalType(&term_ADDS25);
+      break;
   }
 }
 
@@ -2136,6 +2139,12 @@ void Terminal::convSendCtrl(ConvCtrl ctrl, bool fromISR)
       break;
     case ConvCtrl::RestoreCursor:
       convQueue("\e[?1048l", fromISR);
+      break;
+    case ConvCtrl::SetTabStop:
+      convQueue("\eH", fromISR);
+      break;
+    case ConvCtrl::ResetTabStop:
+      convQueue("\e[0g", fromISR);
       break;
     case ConvCtrl::CursorPos:
     case ConvCtrl::CursorPos2:

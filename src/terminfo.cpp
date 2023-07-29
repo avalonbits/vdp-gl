@@ -340,8 +340,8 @@ const TermInfoVideoConv videoConv_Osborne[] = {
   // 'ESC l' => Char Attribute: Underline
   { "\el", 3, { ConvCtrl::AttrUnderline, ConvCtrl::END} },
 
-  // 'ESC m' => Char Attribute: Underline OFF
-  { "\el", 3, { ConvCtrl::AttrUnderlineOff, ConvCtrl::END} },
+  // 'ESC m' => Char Attribute: Underline OFF -- BUG FIXED
+  { "\em", 3, { ConvCtrl::AttrUnderlineOff, ConvCtrl::END} },
 
   // 'ESC Q' => Insert Character
   { "\eQ", 2, { ConvCtrl::InsertChar, ConvCtrl::END} },
@@ -493,6 +493,103 @@ const TermInfo term_ANSILegacy = {
   videoConv_ANSILegacy,
   kbdConv_Generic
 };
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ADDS25 (Maybe ADDS40 - documentation needs confirmation)
+
+
+// sorted by TermSeq name
+const TermInfoVideoConv videoConv_ADDS25[] = {
+  // BS => Cursor Left
+  { "\x08", 1, { ConvCtrl::CursorLeft, ConvCtrl::END } },
+
+  // VT => Cursor Up
+  { "\x0b", 1, { ConvCtrl::CursorUp, ConvCtrl::END} },
+
+  // FF => Cursor Right
+  { "\x0c", 1, { ConvCtrl::CursorRight, ConvCtrl::END} },
+
+  // SUB => Cursor home and Clear screen
+  { "\x1a", 1, { ConvCtrl::CursorHome, ConvCtrl::EraseToEndOfScreen, ConvCtrl::END} },
+
+  // RS => Cursor Home
+  { "\x1e", 1, { ConvCtrl::CursorHome, ConvCtrl::END} },
+
+  // US => New line
+  { "\x1f", 1, { ConvCtrl::CarriageReturn, ConvCtrl::LineFeed, ConvCtrl::END} },
+
+  // 'ESC Y y x' => Cursor Position (cursorX = x-31, cursorY = y-31)
+  { "\eY\xff\xff", 4, { ConvCtrl::CursorPos, ConvCtrl::END} },
+
+  // 'ESC G 4' => Char Attribute: Reverse
+  { "\eG4", 3, { ConvCtrl::AttrReverse, ConvCtrl::END} },
+
+  // 'ESC G 8' => Char Attribute: Underline
+  { "\eG8", 3, { ConvCtrl::AttrUnderline, ConvCtrl::END} },
+
+  // 'ESC G 2' => Char Attribute: Blink
+  { "\eG2", 3, { ConvCtrl::AttrBlink, ConvCtrl::END} },
+
+  // 'ESC G 0' => Char Attribute: GENTLE VERSION - turn off, don't use Normal video mode. This preserves colour.
+  // { "\eG0", 3, { ConvCtrl::AttrNormal, ConvCtrl::END} },
+  { "\eG0", 3, { ConvCtrl::AttrReverseOff, ConvCtrl::AttrUnderlineOff, ConvCtrl::AttrBlinkOff, ConvCtrl::AttrReduceOff, ConvCtrl::END} },
+
+  // 'ESC )' => Char Attribute: Half intensity ON
+  { "\e)", 2, { ConvCtrl::AttrReduce, ConvCtrl::END} },
+
+  // 'ESC (' => Char Attribute: Half intensity OFF
+  { "\e(", 2, { ConvCtrl::AttrReduceOff, ConvCtrl::END} },
+
+  // 'ESC E' => Insert Line
+  { "\eE", 2, { ConvCtrl::InsertLine, ConvCtrl::END} },
+
+  // 'ESC Q' => Insert Character
+  { "\eQ", 2, { ConvCtrl::InsertChar, ConvCtrl::END} },
+
+  // 'ESC R' => Delete Line
+  { "\eR", 2, { ConvCtrl::DeleteLine, ConvCtrl::END} },
+
+  // 'ESC W' => Delete Character
+  { "\eW", 2, { ConvCtrl::DeleteCharacter, ConvCtrl::END} },
+
+  // 'ESC K' => Erase to end of line
+  { "\eK", 2, { ConvCtrl::EraseToEndOfLine, ConvCtrl::END} },
+
+  // 'ESC k' => Erase to end of screen
+  { "\ek", 2, { ConvCtrl::EraseToEndOfScreen, ConvCtrl::END} },
+
+  // 'ESC *' => Cursor home and Clear screen
+  { "\e*", 2, { ConvCtrl::CursorHome, ConvCtrl::EraseToEndOfScreen, ConvCtrl::END} },
+
+  // 'ESC .' => Toggle CursorOn/Off - how?? will need to code somehow - maybe done totally differently.
+  { "\e.", 2, { ConvCtrl::CursorOn, ConvCtrl::END} },
+
+  // 'ESC 1' => Set Tab Stop
+  { "\e1", 2, { ConvCtrl::SetTabStop, ConvCtrl::END} },
+ 
+  // 'ESC 2' => Set Tab Stop
+  { "\e2", 2, { ConvCtrl::ResetTabStop, ConvCtrl::END} },
+
+  // NOT SUPPORTED YET:
+  // Back tab
+  // toggle cursor on/off
+  // Extra modes for text features - invisible, combinations of underline
+  // toggle autoscroll on/off
+  // enable keyboard
+  // disable keyboard
+  // report cursor location
+
+  // Last item marker
+  { nullptr, 0, { } },
+};
+
+
+const TermInfo term_ADDS25 = {
+  "",
+  videoConv_ADDS25,
+  kbdConv_Generic
+};
+
 
 
 }

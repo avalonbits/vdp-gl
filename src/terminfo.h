@@ -78,6 +78,8 @@ enum class ConvCtrl {
   CursorOff,                /**<    */
   SaveCursor,               /**<    */
   RestoreCursor,            /**<    */
+  SetTabStop,               /**<    */
+  ResetTabStop,             /**<    */
 };
 
 
@@ -115,18 +117,19 @@ enum TermType {
   Osborne,        /**< Emulated Osborne I */
   Kaypro,         /**< Emulated Kaypro */
   VT52,           /**< Emulated VT52 terminal */
-  ANSILegacy      /**< Legacy ANSI emulation */
+  ANSILegacy,     /**< Legacy ANSI emulation */
+  ADDS25          /**< ADDS25 Terminal */
 };
 
 
 struct SupportedTerminals {
   static int count()            { return (int)ANSILegacy - (int)ANSI_VT + 1; }
   static char const * * names() {
-    static char const * TERMS[] = { "ANSI",  "ADM 3A", "ADM 31", "Hazeltine 1500", "Osborne", "Kaypro", "VT52", "ANSI Legacy" };
+    static char const * TERMS[] = { "ANSI",  "ADM 3A", "ADM 31", "Hazeltine 1500", "Osborne", "Kaypro", "VT52", "ANSI Legacy", "ADDS25" };
     return TERMS;
   }
   static TermType * types() {
-    static TermType TYPES[]     = { ANSI_VT, ADM3A,    ADM31,    Hazeltine1500,    Osborne,   Kaypro,   VT52,   ANSILegacy };
+    static TermType TYPES[]     = { ANSI_VT, ADM3A,    ADM31,    Hazeltine1500,    Osborne,   Kaypro,   VT52,   ANSILegacy,  ADDS25 };
     return TYPES;
   }
 };
@@ -154,7 +157,8 @@ extern const TermInfo term_VT52;
 // ANSI Legacy
 extern const TermInfo term_ANSILegacy;
 
-
+// ADDS25
+extern const TermInfo term_ADDS25;
 
 
 }
