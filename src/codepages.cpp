@@ -191,7 +191,13 @@ const VirtualKeyToASCII VK2ASCII1252[] = {
   { VK_CARET_Y,      0x59 },    // Ŷ -> Y  (not in cp1252)
   { VK_UMLAUT_y,     0xff },    // ÿ
   { VK_UMLAUT_Y,     0x9f },    // Ÿ
-
+  { VK_aelig,        0xe6 },    // æ
+  { VK_AELIG,        0xc6 },    // Æ
+  { VK_oslash,       0xf8 },    // ø
+  { VK_OSLASH,       0xd8 },    // Ø
+  { VK_aring,        0xe5 },    // å
+  { VK_ARING,        0xc5 },    // Å
+  
   { VK_NONE,         0x00 },    // end of table
 };
 

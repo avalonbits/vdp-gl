@@ -506,7 +506,7 @@ bool Keyboard::blockingGetVirtualKey(VirtualKeyItem * item)
         break;
       }
     }
-    if (!item->down && (item->vk != m_lastDeadKey) && (item->vk != VK_RSHIFT) && (item->vk != VK_LSHIFT))
+    if (!item->down && (item->vk != m_lastDeadKey) && (item->vk != VK_RSHIFT) && (item->vk != VK_LSHIFT) && (item->vk != VK_RALT))
       m_lastDeadKey = VK_NONE;
   }
 
