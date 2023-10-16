@@ -1216,7 +1216,6 @@ enum VirtualKey {
   VK_SECTION,         /**< Section: § */
   VK_TILDE,           /**< Tilde: ~ */
   VK_NEGATION,        /**< Negation: ¬ */
-
   VK_LSHIFT,          /**< Left SHIFT */
   VK_RSHIFT,          /**< Right SHIFT */
   VK_LALT,            /**< Left ALT */
@@ -1341,7 +1340,7 @@ enum VirtualKey {
 
   VK_TILDE_A,         /**< Upper case tilde A: Ã */
   VK_TILDE_O,         /**< Upper case tilde O: Õ */
-  VK_TILDE_N,		      /**< Upper case tilde N: Ñ */
+  VK_TILDE_N,	      /**< Upper case tilde N: Ñ */
 
   VK_UPPER_a,		      /**< primera: a */
   VK_ESZETT,          /**< Eszett: ß */
@@ -1352,7 +1351,11 @@ enum VirtualKey {
   VK_SQUARE,          /**< Square     : ² */
   VK_CURRENCY,        /**< Currency   : ¤ */
   VK_MU,              /**< Mu         : µ */
-  
+  VK_HALF,            /**< 1/2 fraction : 1/2 */
+  VK_MASCULIN_ORD,    /**< Masculin ordinal superscript o */ 
+  VK_FEMININ_ORD,     /**< Feminin ordinal superscript a */  
+  VK_LEFTGUILLEMET,   /**< Left guillemet: « */
+  VK_RIGHTGUILLEMET,  /**< Right guillemet: » */
   VK_aelig,           /** Lower case aelig  : æ */
   VK_oslash,          /** Lower case oslash : ø */
   VK_aring,           /** Lower case aring  : å */
@@ -1360,7 +1363,11 @@ enum VirtualKey {
   VK_AELIG,           /** Upper case aelig  : Æ */
   VK_OSLASH,          /** Upper case oslash : Ø */
   VK_ARING,           /** Upper case aring  : Å */
-  
+
+  VK_DEAD_GRAVEACCENT,/** Grave accent when we need seperate code for dead key*/
+  VK_DEAD_CARET,      /** Caret when we need seperate code for dead key*/
+  VK_DEAD_TILDE,      /** Tilde when we need seperate code for dead key*/
+
   // Japanese layout support
   VK_YEN,
   VK_MUHENKAN,

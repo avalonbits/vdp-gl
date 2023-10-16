@@ -138,6 +138,12 @@ const VirtualKeyToASCII VK2ASCII1252[] = {
   { VK_EURO,         0x80 },    // €
   { VK_DEGREE,       0xb0 },    // °
   { VK_SECTION,      0xa7 },    // §
+  { VK_CURRENCY,     0xa4 },    // ¤
+  { VK_HALF,         0xbd },    // ½
+  { VK_MASCULIN_ORD, 0xba },    // º
+  { VK_FEMININ_ORD,  0xaa },    // ª
+  { VK_LEFTGUILLEMET,0xab },    // «
+  { VK_RIGHTGUILLEMET,0xbb },   // »
   { VK_NEGATION,     0xac },    // ¬
   { VK_SQUARE,       0xb2 },    // ²
   { VK_MU,           0xb5 },    // µ
@@ -146,6 +152,7 @@ const VirtualKeyToASCII VK2ASCII1252[] = {
   { VK_TILDE_N,      0xd1 },    // Ñ
   { VK_UPPER_a,      0xaa },    // ª
   { VK_ACUTE_a,      0xe1 },    // á
+  { VK_ACUTE_i,      0xed },    // í
   { VK_ACUTE_o,      0xf3 },    // ó
   { VK_ACUTE_u,      0xfa },    // ú
   { VK_UMLAUT_i,     0xef },    // ï
