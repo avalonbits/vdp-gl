@@ -515,7 +515,7 @@ const KeyboardLayout SpanishLayout {
 
   // single byte scancodes
   {
-    { 0x0E, VK_DEGREE },
+    { 0x0E, VK_MASCULIN_ORD },
     { 0x4E, VK_QUOTE },
     { 0x55, VK_EXCLAIM_INV }, // inverted exclaim
     { 0x5D, VK_CEDILLA_c },
@@ -540,8 +540,8 @@ const KeyboardLayout SpanishLayout {
   //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
   {
 
-    { VK_DEGREE,      { 0, 0, 1, 0 }, VK_BACKSLASH },     // ALT   "º" = "\"
-    { VK_DEGREE,      { 0, 0, 0, 1 }, VK_UPPER_a },       // SHIFT "º" = "ª"
+    { VK_MASCULIN_ORD,      { 0, 0, 1, 0 }, VK_BACKSLASH },     // ALT   "º" = "\"
+    { VK_MASCULIN_ORD,      { 0, 0, 0, 1 }, VK_FEMININ_ORD },       // SHIFT "º" = "ª"
 
     { VK_1,           { 0, 0, 1, 0 }, VK_VERTICALBAR },   // ALT   "1" = "|"
     { VK_1,           { 0, 0, 0, 1 }, VK_EXCLAIM },       // SHIFT "1" = "!"
@@ -685,7 +685,6 @@ const KeyboardLayout FrenchLayout {
     { 0x46, VK_CEDILLA_c },
     { 0x45, VK_GRAVE_a },
     { 0x4E, VK_RIGHTPAREN },
-    { 0x79, VK_EQUALS },
 
     { 0x15, VK_a },
     { 0x1D, VK_z },
@@ -703,8 +702,6 @@ const KeyboardLayout FrenchLayout {
     { 0x41, VK_SEMICOLON },
     { 0x49, VK_COLON },
     { 0x4A, VK_EXCLAIM },
-    { 0x55, VK_EXCLAIM_INV },
-
   },
 
   // extended scancodes (0xE0..)
