@@ -2188,7 +2188,8 @@ const KeyboardLayout BrazilianPortugueseLayout {
     { 0x4A, VK_SEMICOLON },
     { 0x5B, VK_LEFTBRACKET },
     { 0x5D, VK_RIGHTBRACKET },
-    // { 0x00, VK_KP_PERIOD },
+    { 0x71, VK_KP_PERIOD },
+    { 0x87, VK_SLASH },
   },
 
   // extended scancodes (0xE0..)
@@ -2199,11 +2200,23 @@ const KeyboardLayout BrazilianPortugueseLayout {
   //  in_key, { CTRL, LALT, RALT, SHIFT }, out_key
   {
     { VK_QUOTE,       { 0, 0, 0, 1 }, VK_QUOTEDBL },     // SHIFT "'" = """
-    { VK_ACUTEACCENT, { 0, 0, 0, 1 }, VK_GRAVEACCENT },  // SHIFT "`" = "'"
+    { VK_6,           { 0, 0, 0, 1 }, VK_DIAERESIS },    // SHIFT "6" = "¨"
+    { VK_ACUTEACCENT, { 0, 0, 0, 1 }, VK_GRAVEACCENT },  // SHIFT "´" = "`"
     { VK_TILDE,       { 0, 0, 0, 1 }, VK_CARET },        // SHIFT "~" = "^"
     { VK_CEDILLA_c,   { 0, 0, 0, 1 }, VK_CEDILLA_C },    // SHIFT "ç" = "Ç"
     { VK_LEFTBRACKET, { 0, 0, 0, 1 }, VK_LEFTBRACE },    // SHIFT "[" = "{"
     { VK_RIGHTBRACKET,{ 0, 0, 0, 1 }, VK_RIGHTBRACE },   // SHIFT "]" = "}"
+    { VK_1,           { 0, 0, 1, 0 }, VK_UPPER_1 },      // ALTGR "1" = "¹"
+    { VK_2,           { 0, 0, 1, 0 }, VK_SQUARE },       // ALTGR "2" = "²"
+    { VK_3,           { 0, 0, 1, 0 }, VK_CUBE },         // ALTGR "3" = "³"
+    { VK_4,           { 0, 0, 1, 0 }, VK_POUND },        // ALTGR "4" = "£"
+    { VK_5,           { 0, 0, 1, 0 }, VK_CENT },         // ALTGR "5" = "¢"
+    { VK_6,           { 0, 0, 1, 0 }, VK_NEGATION },     // ALTGR "6" = "¬"
+    { VK_EQUALS,      { 0, 0, 1, 0 }, VK_SECTION },      // ALTGR "=" = "§"
+    { VK_e,           { 0, 0, 1, 0 }, VK_EURO },         // ALTGR "e" = "€"
+    { VK_RIGHTBRACKET,{ 0, 0, 1, 0 }, VK_MASCULIN_ORD }, // ALTGR "]" = "º"
+    { VK_LEFTBRACKET, { 0, 0, 1, 0 }, VK_FEMININ_ORD },  // ALTGR "[" = "ª"
+    { VK_SLASH,       { 0, 0, 1, 0 }, VK_DEGREE },       // ALTGR "/" = "°"
   },
 
   // deadkeys
