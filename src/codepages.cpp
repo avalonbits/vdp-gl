@@ -140,12 +140,15 @@ const VirtualKeyToASCII VK2ASCII1252[] = {
   { VK_SECTION,      0xa7 },    // §
   { VK_CURRENCY,     0xa4 },    // ¤
   { VK_HALF,         0xbd },    // ½
+  { VK_UPPER_1,      0xb9 },    // ¹
   { VK_MASCULIN_ORD, 0xba },    // º
   { VK_FEMININ_ORD,  0xaa },    // ª
+  { VK_CENT,         0xa2 },    // ¢
   { VK_LEFTGUILLEMET,0xab },    // «
   { VK_RIGHTGUILLEMET,0xbb },   // »
   { VK_NEGATION,     0xac },    // ¬
   { VK_SQUARE,       0xb2 },    // ²
+  { VK_CUBE,         0xb3 },    // ³
   { VK_MU,           0xb5 },    // µ
   { VK_CEDILLA_C,    0xc7 },    // Ç
   { VK_TILDE_n,      0xf1 },    // ñ
