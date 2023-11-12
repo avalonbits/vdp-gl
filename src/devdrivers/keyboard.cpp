@@ -503,6 +503,7 @@ bool Keyboard::blockingGetVirtualKey(VirtualKeyItem * item)
     for (DeadKeyVirtualKeyDef const * dk = m_layout->deadkeysToVK; dk->deadKey != VK_NONE; ++dk) {
       if (item->vk == dk->reqVirtualKey && m_lastDeadKey == dk->deadKey) {
         item->vk = dk->virtualKey;
+        if (!item->down) m_lastDeadKey = VK_NONE;
         break;
       }
     }
