@@ -688,7 +688,7 @@ const KeyboardLayout FrenchLayout {
 
     { 0x15, VK_a },
     { 0x1D, VK_z },
-    { 0x54, VK_CARET },
+    { 0x54, VK_DEAD_CARET },
     { 0x5B, VK_DOLLAR },
 
     { 0x1C, VK_q },
@@ -735,7 +735,7 @@ const KeyboardLayout FrenchLayout {
     { VK_GRAVE_a,     { 0, 0, 1, 0 }, VK_AT },           // ALTGR "à" = "@"
     { VK_RIGHTPAREN,  { 0, 0, 1, 0 }, VK_RIGHTBRACKET }, // ALTGR ")" = "]"
     { VK_EQUALS,      { 0, 0, 1, 0 }, VK_RIGHTBRACE },   // ALTGR "=" = "}"
-    { VK_CARET,       { 0, 0, 0, 1 }, VK_DIAERESIS },    // SHIFT "^" = "¨"
+    { VK_DEAD_CARET,  { 0, 0, 0, 1 }, VK_DIAERESIS },    // SHIFT "^" = "¨"
     { VK_DOLLAR,      { 0, 0, 0, 1 }, VK_POUND },        // SHIFT "$" = "£"
     { VK_DOLLAR,      { 0, 0, 1, 0 }, VK_CURRENCY },     // ALTGR "$" = "¤"
     { VK_GRAVE_u,     { 0, 0, 0, 1 }, VK_PERCENT },      // SHIFT "ù" = "%"
@@ -750,23 +750,24 @@ const KeyboardLayout FrenchLayout {
 
   // deadkeys
   {
-    VK_CARET,
+    VK_DEAD_CARET,
     VK_DIAERESIS
   },
 
   // deadkeys translation
   {
-	 { VK_CARET,       VK_a,     VK_CARET_a },    // "â"
-	 { VK_CARET,       VK_e,     VK_CARET_e },    // "ê"
-	 { VK_CARET,       VK_i,     VK_CARET_i },    // "î"
-	 { VK_CARET,       VK_o,     VK_CARET_o },    // "ô"
-	 { VK_CARET,       VK_u,     VK_CARET_u },    // "û"
+	 { VK_DEAD_CARET,       VK_SPACE, VK_CARET },
+	 { VK_DEAD_CARET,       VK_a,     VK_CARET_a },    // "â"
+	 { VK_DEAD_CARET,       VK_e,     VK_CARET_e },    // "ê"
+	 { VK_DEAD_CARET,       VK_i,     VK_CARET_i },    // "î"
+	 { VK_DEAD_CARET,       VK_o,     VK_CARET_o },    // "ô"
+	 { VK_DEAD_CARET,       VK_u,     VK_CARET_u },    // "û"
 
-	 { VK_CARET,       VK_A,     VK_CARET_A },    // "Â"
-	 { VK_CARET,       VK_E,     VK_CARET_E },    // "Ê"
-	 { VK_CARET,       VK_I,     VK_CARET_I },    // "Î"
-	 { VK_CARET,       VK_O,     VK_CARET_O },    // "Ô"
-	 { VK_CARET,       VK_U,     VK_CARET_U },    // "Û"
+	 { VK_DEAD_CARET,       VK_A,     VK_CARET_A },    // "Â"
+	 { VK_DEAD_CARET,       VK_E,     VK_CARET_E },    // "Ê"
+	 { VK_DEAD_CARET,       VK_I,     VK_CARET_I },    // "Î"
+	 { VK_DEAD_CARET,       VK_O,     VK_CARET_O },    // "Ô"
+	 { VK_DEAD_CARET,       VK_U,     VK_CARET_U },    // "Û"
 
 	 { VK_DIAERESIS,   VK_a,     VK_UMLAUT_a },    // "ä"
 	 { VK_DIAERESIS,   VK_e,     VK_UMLAUT_e },    // "ë"
@@ -823,7 +824,7 @@ const KeyboardLayout BelgianLayout {
 
     { 0x4E, VK_RIGHTPAREN },	// - -> )
     { 0x55, VK_MINUS },			  // = -> -
-    { 0x54, VK_CARET },			  // [ -> ^ (dead)
+    { 0x54, VK_DEAD_CARET },			  // [ -> ^ (dead)
     { 0x5B, VK_DOLLAR },		  // ] -> $
 
     { 0x5D, VK_MU },			    // \ -> mu
@@ -860,10 +861,10 @@ const KeyboardLayout BelgianLayout {
     { VK_SQUARE,  	   { 0, 0, 0, 1 }, VK_HASH },         // SHIFT "@" = "#" (Apple) or Cube (tbd)
     { VK_RIGHTPAREN,   { 0, 0, 0, 1 }, VK_DEGREE },       // SHIFT ")" = "°"
     { VK_MINUS,        { 0, 0, 0, 1 }, VK_UNDERSCORE },   // SHIFT "-" = "_"
-    { VK_CARET,        { 0, 0, 0, 1 }, VK_DIAERESIS },    // SHIFT "^" = "¨"
+    { VK_DEAD_CARET,   { 0, 0, 0, 1 }, VK_DIAERESIS },    // SHIFT "^" = "¨"
     { VK_DOLLAR,       { 0, 0, 0, 1 }, VK_ASTERISK },     // SHIFT "$" = "*"
     { VK_GRAVE_u,      { 0, 0, 0, 1 }, VK_PERCENT },      // SHIFT "ù" = "%"
-    { VK_ESZETT,       { 0, 0, 0, 1 }, VK_POUND },        // SHIFT "`" = "£"
+    { VK_MU,           { 0, 0, 0, 1 }, VK_POUND },        // SHIFT "µ" = "£"
     { VK_LESS,         { 0, 0, 0, 1 }, VK_GREATER },      // SHIFT "<" = ">"
     { VK_COMMA,        { 0, 0, 0, 1 }, VK_QUESTION },     // SHIFT "," = "?"
     { VK_SEMICOLON,    { 0, 0, 0, 1 }, VK_PERIOD },       // SHIFT ";" = "."
@@ -882,7 +883,7 @@ const KeyboardLayout BelgianLayout {
     { VK_GRAVE_a,      { 0, 0, 1, 0 }, VK_RIGHTBRACE },   // ALTGR "-" = "}" (add-on)
 
     { VK_e,            { 0, 0, 1, 0 }, VK_EURO },         // ALTGR "e" = "€"
-    { VK_CARET,        { 0, 0, 1, 0 }, VK_LEFTBRACKET },  // ALTGR "^" = "["
+    { VK_DEAD_CARET,   { 0, 0, 1, 0 }, VK_LEFTBRACKET },  // ALTGR "^" = "["
     { VK_DOLLAR,       { 0, 0, 1, 0 }, VK_RIGHTBRACKET }, // ALTGR "$" = "]"
     { VK_GRAVE_u,      { 0, 0, 1, 0 }, VK_ACUTEACCENT },  // ALTGR "ù" = "´"
     { VK_MU,           { 0, 0, 1, 0 }, VK_GRAVEACCENT },  // ALTGR "mu" = "`"
@@ -897,7 +898,7 @@ const KeyboardLayout BelgianLayout {
     VK_GRAVEACCENT,		// `
     VK_ACUTEACCENT,		// ´
     VK_DIAERESIS,		  // ¨
-    VK_CARET,			    // ^
+    VK_DEAD_CARET,			    // ^
     VK_TILDE,			    // ~
     VK_NONE  			    // END MARKER
   },
@@ -907,7 +908,7 @@ const KeyboardLayout BelgianLayout {
 	 { VK_GRAVEACCENT, VK_SPACE, VK_GRAVEACCENT },
 	 { VK_ACUTEACCENT, VK_SPACE, VK_ACUTEACCENT },
 	 { VK_DIAERESIS,   VK_SPACE, VK_DIAERESIS },
-	 { VK_CARET,       VK_SPACE, VK_CARET },
+	 { VK_DEAD_CARET,  VK_SPACE, VK_CARET },
 	 { VK_TILDE,       VK_SPACE, VK_TILDE },
 
 	 { VK_TILDE,       VK_n,     VK_TILDE_n },
@@ -945,19 +946,19 @@ const KeyboardLayout BelgianLayout {
 	 { VK_ACUTEACCENT, VK_U,     VK_ACUTE_U },
 	 { VK_ACUTEACCENT, VK_Y,     VK_ACUTE_Y },
 
-	 { VK_CARET,       VK_a,     VK_CARET_a },
-	 { VK_CARET,       VK_e,     VK_CARET_e },
-	 { VK_CARET,       VK_i,     VK_CARET_i },
-	 { VK_CARET,       VK_o,     VK_CARET_o },
-	 { VK_CARET,       VK_u,     VK_CARET_u },
-	 { VK_CARET,       VK_y,     VK_CARET_y },
+	 { VK_DEAD_CARET,       VK_a,     VK_CARET_a },
+	 { VK_DEAD_CARET,       VK_e,     VK_CARET_e },
+	 { VK_DEAD_CARET,       VK_i,     VK_CARET_i },
+	 { VK_DEAD_CARET,       VK_o,     VK_CARET_o },
+	 { VK_DEAD_CARET,       VK_u,     VK_CARET_u },
+	 { VK_DEAD_CARET,       VK_y,     VK_CARET_y },
 
-	 { VK_CARET,       VK_A,     VK_CARET_A },
-	 { VK_CARET,       VK_E,     VK_CARET_E },
-	 { VK_CARET,       VK_I,     VK_CARET_I },
-	 { VK_CARET,       VK_O,     VK_CARET_O },
-	 { VK_CARET,       VK_U,     VK_CARET_U },
-	 { VK_CARET,       VK_Y,     VK_CARET_Y },
+	 { VK_DEAD_CARET,       VK_A,     VK_CARET_A },
+	 { VK_DEAD_CARET,       VK_E,     VK_CARET_E },
+	 { VK_DEAD_CARET,       VK_I,     VK_CARET_I },
+	 { VK_DEAD_CARET,       VK_O,     VK_CARET_O },
+	 { VK_DEAD_CARET,       VK_U,     VK_CARET_U },
+	 { VK_DEAD_CARET,       VK_Y,     VK_CARET_Y },
 
 	 { VK_DIAERESIS,   VK_a,     VK_UMLAUT_a },
 	 { VK_DIAERESIS,   VK_e,     VK_UMLAUT_e },
