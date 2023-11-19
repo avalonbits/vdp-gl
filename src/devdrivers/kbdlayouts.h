@@ -144,12 +144,14 @@ extern const KeyboardLayout PortugueseLayout;
 /** @brief Brazilian Portuguese keyboard layout */
 extern const KeyboardLayout BrazilianPortugueseLayout;
   
-
+/** @brief Dvorak keyboard layout */
+extern const KeyboardLayout DvorakLayout;
   
+
 
 struct SupportedLayouts {
 
-  static constexpr int LAYOUTSCOUNT = 17;
+  static constexpr int LAYOUTSCOUNT = 18;
 
   static int count()               { return LAYOUTSCOUNT; }
 
@@ -172,6 +174,7 @@ struct SupportedLayouts {
 	SwedishLayout.desc,
 	PortugueseLayout.desc,
 	BrazilianPortugueseLayout.desc,
+  DvorakLayout.desc,
     };
     return NAMES;
   }
@@ -195,6 +198,7 @@ struct SupportedLayouts {
 	SwedishLayout.name,
 	PortugueseLayout.name,
 	BrazilianPortugueseLayout.name,
+  DvorakLayout.name,
     };
     return SNAMES;
   }
@@ -218,6 +222,7 @@ struct SupportedLayouts {
 	&SwedishLayout,
 	&PortugueseLayout,
 	&BrazilianPortugueseLayout,
+  &DvorakLayout,
     };
     return LAYOUTS;
   }
