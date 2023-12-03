@@ -240,6 +240,9 @@ private:
   void rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount);
 
   // abstract method of BitmappedDisplayController
+  void rawCopyToBitmap(int srcX, int srcY, int width, void * saveBuffer, int X1, int Y1, int XCount, int YCount);
+
+  // abstract method of BitmappedDisplayController
   void rawFillRow(int y, int x1, int x2, RGB888 color);
 
   void rawFillRow(int y, int x1, int x2, uint8_t pattern);

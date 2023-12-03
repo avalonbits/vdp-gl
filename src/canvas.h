@@ -717,6 +717,18 @@ public:
   void drawBitmap(int X, int Y, Bitmap const * bitmap);
 
   /**
+   * @brief Copies an area of screen to a bitmap from specified position.
+   *
+   * The bitmap provided must be a "native" format bitmap (one byte per pixel).
+   * Width and height information are taken from the bitmap structure.
+   *
+   * @param X Horizontal position of source area.
+   * @param Y Vertical position of source area.
+   * @param bitmap Pointer to bitmap structure.
+   */
+  void copyToBitmap(int X, int Y, Bitmap const * bitmap);
+
+  /**
    * @brief Draws a sequence of lines.
    *
    * @param points A pointer to an array of Point objects. Points array is copied to a temporary buffer.

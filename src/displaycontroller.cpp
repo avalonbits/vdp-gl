@@ -774,6 +774,9 @@ void IRAM_ATTR BitmappedDisplayController::execPrimitive(Primitive const & prim,
     case PrimitiveCmd::DrawBitmap:
       drawBitmap(prim.bitmapDrawingInfo, updateRect);
       break;
+    case PrimitiveCmd::CopyToBitmap:
+      copyToBitmap(prim.bitmapDrawingInfo);
+      break;
     case PrimitiveCmd::RefreshSprites:
       hideSprites(updateRect);
       showSprites(updateRect);
@@ -1234,6 +1237,59 @@ void IRAM_ATTR BitmappedDisplayController::absDrawBitmap(int destX, int destY, B
 
 }
 
+
+void IRAM_ATTR BitmappedDisplayController::copyToBitmap(BitmapDrawingInfo const & bitmapCopyingInfo)
+{
+  int x = bitmapCopyingInfo.X + paintState().origin.X;
+  int y = bitmapCopyingInfo.Y + paintState().origin.Y;
+  absCopyToBitmap(x, y, bitmapCopyingInfo.bitmap);
+}
+
+
+void IRAM_ATTR BitmappedDisplayController::absCopyToBitmap(int srcX, int srcY, Bitmap const * bitmap)
+{
+  const int width  = bitmap->width;
+  const int height = bitmap->height;
+  const int clipX1 = 0;
+  const int clipY1 = 0;
+  const int clipX2 = paintState().absClippingRect.X2;
+  const int clipY2 = paintState().absClippingRect.Y2;
+
+  if (srcX > clipX2 || srcY > clipY2)
+    return;
+
+  int X1 = 0;
+  int XCount = width;
+
+  if (srcX < clipX1) {
+    X1 = clipX1 - srcX;
+    srcX = clipX1;
+  }
+  if (X1 >= width)
+    return;
+
+  if (srcX + XCount > clipX2 + 1)
+    XCount = clipX2 + 1 - srcX;
+  if (X1 + XCount > width)
+    XCount = width - X1;
+
+  int Y1 = 0;
+  int YCount = height;
+
+  if (srcY < clipY1) {
+    Y1 = clipY1 - srcY;
+    srcY = clipY1;
+  }
+  if (Y1 >= height)
+    return;
+
+  if (srcY + YCount > clipY2 + 1)
+    YCount = clipY2 + 1 - srcY;
+  if (Y1 + YCount > height)
+    YCount = height - Y1;
+
+  rawCopyToBitmap(srcX, srcY, width, bitmap->data, X1, Y1, XCount, YCount);
+}
 
 
 } // end of namespace

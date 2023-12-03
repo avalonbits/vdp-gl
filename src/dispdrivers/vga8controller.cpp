@@ -404,6 +404,15 @@ void VGA8Controller::rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const *
 }
 
 
+void VGA8Controller::rawCopyToBitmap(int srcX, int srcY, int width, void * saveBuffer, int X1, int Y1, int XCount, int YCount)
+{
+  genericRawCopyToBitmap(srcX, srcY, width, (uint8_t*)saveBuffer, X1, Y1, XCount, YCount,
+                        [&] (int y)                { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
+                        [&] (uint8_t * row, int x) { return VGA8_GETPIXELINROW(row, x); } // rawGetPixelInRow
+                      );
+}
+
+
 void VGA8Controller::directSetPixel(int x, int y, int value)
 {
   VGA8_SETPIXEL(x, y, value);
