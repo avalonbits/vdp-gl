@@ -194,14 +194,23 @@
 /** Modeline for 512x384@60Hz resolution */
 #define VGA_512x384_60Hz "\"512x384@60Hz\" 32.5 512 524 592 672 384 385 388 403 -HSync -VSync DoubleScan"
 
+/** Modeline for 512x192@60Hz quad scan resolution */
+#define VGA_512x192_60Hz "\"512x192@60Hz\" 32.5 512 524 592 672 192 193 194 201 -HSync -VSync QuadScan"
+
 /** Modeline for 640x360@60Hz resolution (quarter 720p) */
 #define SVGA_640x360_60Hz "\"640x360@60Hz\"   37.24  640  734  802  832 360 361 362 373 +hsync +vsync DoubleScan"
 
 /** Modeline for 640x480@60Hz resolution */
 #define VGA_640x480_60Hz "\"640x480@60Hz\" 25.175 640 656 752 800 480 490 492 525 -HSync -VSync"
 
+/** Modeline for 640x240@60Hz double scan resolution */
+#define VGA_640x240_60Hz "\"640x240@60Hz\" 25.175 640 656 752 800 240 245 246 262 -HSync -VSync DoubleScan"
+
 /** Modeline for 640x512@60Hz resolution (for pixel perfect 1280x1024 double scan resolution) */
 #define QSVGA_640x512_60Hz "\"640x512@60Hz\" 54     640 664 720 844 512 513 515 533 -HSync -VSync DoubleScan"
+
+/** Modeline for 640x256@60Hz quad scan resolution (for pixel perfect 1280x1024 double scan resolution) */
+#define QSVGA_640x256_60Hz "\"640x256@60Hz\" 54     640 664 720 844 256 257 258 267 -HSync -VSync QuadScan"
 
 /** Modeline for 800x600@60Hz resolution */
 #define SVGA_800x600_60Hz "\"800x600@60Hz\" 40 800 840 968 1056 600 601 605 628 -HSync -VSync"
