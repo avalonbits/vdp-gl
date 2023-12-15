@@ -510,6 +510,16 @@ void Canvas::drawBitmap(int X, int Y, Bitmap const * bitmap)
 }
 
 
+void Canvas::copyToBitmap(int srcX, int srcY, Bitmap const * bitmap)
+{
+  if (bitmap->format != PixelFormat::Native) return;
+  Primitive p;
+  p.cmd               = PrimitiveCmd::CopyToBitmap;
+  p.bitmapDrawingInfo = BitmapDrawingInfo(srcX, srcY, bitmap);
+  m_displayController->addPrimitive(p);
+}
+
+
 void Canvas::swapBuffers()
 {
   Primitive p;

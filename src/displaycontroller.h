@@ -159,6 +159,10 @@ enum PrimitiveCmd : uint8_t {
   // params: bitmapDrawingInfo
   DrawBitmap,
 
+  // Copy a bitmap
+  // params: bitmapDrawingInfo
+  CopyToBitmap,
+
   // Refresh sprites
   // no params
   RefreshSprites,
@@ -950,6 +954,8 @@ protected:
 
   virtual void rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount) = 0;
 
+  virtual void rawCopyToBitmap(int srcX, int srcY, int width, void * saveBuffer, int X1, int Y1, int XCount, int YCount) = 0;
+
   //// implemented methods
 
   void execPrimitive(Primitive const & prim, Rect & updateRect, bool insideISR);
@@ -989,6 +995,10 @@ protected:
   void drawBitmap(BitmapDrawingInfo const & bitmapDrawingInfo, Rect & updateRect);
 
   void absDrawBitmap(int destX, int destY, Bitmap const * bitmap, void * saveBackground, bool ignoreClippingRect);
+
+  void copyToBitmap(BitmapDrawingInfo const & bitmapCopyingInfo);
+
+  void absCopyToBitmap(int srcX, int srcY, Bitmap const * bitmap);
 
   void setDoubleBuffered(bool value);
 
@@ -1716,6 +1726,24 @@ protected:
         }
       }
 
+    }
+  }
+
+
+  template <typename TRawGetRow, typename TRawGetPixelInRow, typename TBuffer>
+  void genericRawCopyToBitmap(int srcX, int srcY, int width, TBuffer * saveBuffer, int X1, int Y1, int XCount, int YCount,
+                            TRawGetRow rawGetRow, TRawGetPixelInRow rawGetPixelInRow)
+  {
+    const int yEnd  = Y1 + YCount;
+    const int xEnd  = X1 + XCount;
+
+    // save screen area to buffer
+    for (int y = Y1; y < yEnd; ++y, ++srcY) {
+      auto srcrow = rawGetRow(srcY);
+      auto savePx = saveBuffer + y * width + X1;
+      for (int x = X1, asrcX = srcX; x < xEnd; ++x, ++asrcX, ++savePx) {
+        *savePx = rawGetPixelInRow(srcrow, asrcX);
+      }
     }
   }
 
