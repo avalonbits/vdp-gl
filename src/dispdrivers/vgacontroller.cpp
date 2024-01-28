@@ -222,7 +222,13 @@ void IRAM_ATTR VGAController::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888
 // parameters not checked
 void IRAM_ATTR VGAController::rawFillRow(int y, int x1, int x2, RGB888 color)
 {
-  rawFillRow(y, x1, x2, preparePixel(color));
+  // This version, passing an RGB888 color, is only used by shape drawing methods,
+  // so we will pick fill method based on paint mode
+  auto paintMode = paintState().paintOptions.mode;
+  auto getPixel = getPixelLamda(paintMode);
+  auto pixel = getPixel(color);
+  auto fill = fillRowLamda(paintMode);
+  fill(y, x1, x2, pixel);
 }
 
 
@@ -315,10 +321,8 @@ void IRAM_ATTR VGAController::swapRows(int yA, int yB, int x1, int x2)
 
 void IRAM_ATTR VGAController::drawEllipse(Size const & size, Rect & updateRect)
 {
-  genericDrawEllipse(size, updateRect,
-                     [&] (RGB888 const & color)          { return preparePixel(color); },
-                     [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) = pattern; }
-                    );
+  auto mode = paintState().paintOptions.mode;
+  genericDrawEllipse(size, updateRect, getPixelLamda(mode), setPixelLamda(mode));
 }
 
 
