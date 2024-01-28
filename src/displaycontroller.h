@@ -592,14 +592,24 @@ struct Path {
 } __attribute__ ((packed));
 
 
+enum PaintMode : uint8_t {
+  Set = 0,      // Plot colour
+  OR = 1,       // OR colour onto screen
+  AND = 2,      // AND colour onto screen
+  XOR = 3,      // XOR colour onto screen
+  Invert = 4,   // Invert colour on screen
+  NOT = 4,      // NOT colour onto screen, alias for Invert
+};
+
 /**
  * @brief Specifies general paint options.
  */
 struct PaintOptions {
   uint8_t swapFGBG : 1;  /**< If enabled swaps foreground and background colors */
   uint8_t NOT      : 1;  /**< If enabled performs NOT logical operator on destination. Implemented only for straight lines and non-filled rectangles. */
+  PaintMode mode   : 3;  /**< Paint mode */
 
-  PaintOptions() : swapFGBG(false), NOT(false) { }
+  PaintOptions() : swapFGBG(false), NOT(false), mode(PaintMode::Set) { }
 } __attribute__ ((packed));
 
 

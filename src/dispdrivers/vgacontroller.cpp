@@ -151,25 +151,70 @@ void IRAM_ATTR VGAController::VSyncInterrupt(void * arg)
 }
 
 
+std::function<uint8_t(RGB888 const &)> VGAController::getPixelLamda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::XOR:
+      return [&] (RGB888 const & color) { return preparePixel(color) & 63; };
+    default: // PaintMode::Set, et al
+      return [&] (RGB888 const & color) { return preparePixel(color); };
+  }
+}
+
+std::function<void(int X, int Y, uint8_t pattern)> VGAController::setPixelLamda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::OR:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) |= pattern; };
+    case PaintMode::AND:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) &= pattern; };
+    case PaintMode::XOR:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) ^= pattern; };
+    case PaintMode::Invert:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_INVERT_PIXEL(X, Y); };
+    default:  // PaintMode::Set
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) = pattern; };
+  }
+}
+
+std::function<void(int Y, int X1, int X2, uint8_t pattern)> VGAController::fillRowLamda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::OR:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawORRow(Y, X1, X2, pattern); };
+    case PaintMode::AND:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawANDRow(Y, X1, X2, pattern); };
+    case PaintMode::XOR:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawXORRow(Y, X1, X2, pattern); };
+    case PaintMode::Invert:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawInvertRow(Y, X1, X2); };
+    default:  // PaintMode::Set
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawFillRow(Y, X1, X2, pattern); };
+  }
+}
+
+
+
 void IRAM_ATTR VGAController::setPixelAt(PixelDesc const & pixelDesc, Rect & updateRect)
 {
-  genericSetPixelAt(pixelDesc, updateRect,
-                    [&] (RGB888 const & color)          { return preparePixel(color); },
-                    [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) = pattern; }
-                   );
+  auto paintMode = paintState().paintOptions.mode;
+  genericSetPixelAt(pixelDesc, updateRect, getPixelLamda(paintMode), setPixelLamda(paintMode));
 }
+
 
 
 // coordinates are absolute values (not relative to origin)
 // line clipped on current absolute clipping rectangle
 void IRAM_ATTR VGAController::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color)
 {
+  auto paintMode = paintState().paintOptions.mode;
+
   genericAbsDrawLine(X1, Y1, X2, Y2, color,
-                     [&] (RGB888 const & color)                   { return preparePixel(color); },
-                     [&] (int Y, int X1, int X2, uint8_t pattern) { rawFillRow(Y, X1, X2, pattern); },
-                     [&] (int Y, int X1, int X2)                  { rawInvertRow(Y, X1, X2); },
-                     [&] (int X, int Y, uint8_t pattern)          { VGA_PIXEL(X, Y) = pattern; },
-                     [&] (int X, int Y)                           { VGA_INVERT_PIXEL(X, Y); }
+                     getPixelLamda(paintMode),
+                     fillRowLamda(paintMode),
+                     [&] (int Y, int X1, int X2) { rawInvertRow(Y, X1, X2); },
+                     setPixelLamda(paintMode),
+                     [&] (int X, int Y)          { VGA_INVERT_PIXEL(X, Y); }
                      );
 }
 
@@ -199,6 +244,39 @@ void IRAM_ATTR VGAController::rawFillRow(int y, int x1, int x2, uint8_t pattern)
   // fill last unaligned bytes
   for (; x <= x2; ++x) {
     VGA_PIXELINROW(row, x) = pattern;
+  }
+}
+
+
+// parameters not checked
+void IRAM_ATTR VGAController::rawORRow(int y, int x1, int x2, uint8_t pattern)
+{
+  auto row = m_viewPort[y];
+  // naive implementation - just do whole row iteratively
+  for (int x = x1; x <= x2; ++x) {
+    VGA_PIXELINROW(row, x) |= pattern;
+  }
+}
+
+
+// parameters not checked
+void IRAM_ATTR VGAController::rawANDRow(int y, int x1, int x2, uint8_t pattern)
+{
+  auto row = m_viewPort[y];
+  // naive implementation - just do whole row iteratively
+  for (int x = x1; x <= x2; ++x) {
+    VGA_PIXELINROW(row, x) &= pattern;
+  }
+}
+
+
+// parameters not checked
+void IRAM_ATTR VGAController::rawXORRow(int y, int x1, int x2, uint8_t pattern)
+{
+  auto row = m_viewPort[y];
+  // naive implementation - just do whole row iteratively
+  for (int x = x1; x <= x2; ++x) {
+    VGA_PIXELINROW(row, x) ^= pattern;
   }
 }
 
