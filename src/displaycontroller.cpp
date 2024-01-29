@@ -899,7 +899,7 @@ void IRAM_ATTR BitmappedDisplayController::fillRect(Rect const & rect, RGB888 co
   hideSprites(updateRect);
 
   for (int y = y1; y <= y2; ++y)
-    rawFillRow(y, x1, x2, color);
+    fillRow(y, x1, x2, color);
 }
 
 
@@ -946,9 +946,9 @@ void IRAM_ATTR BitmappedDisplayController::fillEllipse(int centerX, int centerY,
         int row1 = centerY - y;
         int row2 = centerY + y;
         if (row1 >= clipY1 && row1 <= clipY2)
-          rawFillRow(row1, col1, col2, color);
+          fillRow(row1, col1, col2, color);
         if (y != 0 && row2 >= clipY1 && row2 <= clipY2)
-          rawFillRow(row2, col1, col2, color);
+          fillRow(row2, col1, col2, color);
       }
       if (t - a2 * y <= crit2) {
         x++;
@@ -963,7 +963,7 @@ void IRAM_ATTR BitmappedDisplayController::fillEllipse(int centerX, int centerY,
   }
   // one line horizontal ellipse case
   if (halfHeight == 0 && centerY >= clipY1 && centerY <= clipY2)
-    rawFillRow(centerY, iclamp(centerX - halfWidth, clipX1, clipX2), iclamp(centerX - halfWidth + 2 * halfWidth + 1, clipX1, clipX2), color);
+    fillRow(centerY, iclamp(centerX - halfWidth, clipX1, clipX2), iclamp(centerX - halfWidth + 2 * halfWidth + 1, clipX1, clipX2), color);
 }
 
 
@@ -1105,7 +1105,7 @@ void IRAM_ATTR BitmappedDisplayController::fillPath(Path const & path, RGB888 co
           nodeX[i] = minX;
         if (nodeX[i + 1] > maxX)
           nodeX[i + 1] = maxX;
-        rawFillRow(pixelY, nodeX[i], nodeX[i + 1] - 1, color);
+        fillRow(pixelY, nodeX[i], nodeX[i + 1] - 1, color);
       }
     }
   }

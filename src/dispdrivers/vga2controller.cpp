@@ -202,7 +202,7 @@ void VGA2Controller::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color)
 
 
 // parameters not checked
-void VGA2Controller::rawFillRow(int y, int x1, int x2, RGB888 color)
+void VGA2Controller::fillRow(int y, int x1, int x2, RGB888 color)
 {
   // pick fill method based on paint mode
   auto paintMode = paintState().paintOptions.mode;

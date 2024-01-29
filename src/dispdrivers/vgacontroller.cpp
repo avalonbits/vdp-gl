@@ -230,7 +230,7 @@ void IRAM_ATTR VGAController::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888
 
 
 // parameters not checked
-void IRAM_ATTR VGAController::rawFillRow(int y, int x1, int x2, RGB888 color)
+void IRAM_ATTR VGAController::fillRow(int y, int x1, int x2, RGB888 color)
 {
   // This version, passing an RGB888 color, is only used by shape drawing methods,
   // so we will pick fill method based on paint mode

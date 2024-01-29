@@ -171,7 +171,8 @@ private:
   void rawCopyToBitmap(int srcX, int srcY, int width, void * saveBuffer, int X1, int Y1, int XCount, int YCount);
 
   // abstract method of BitmappedDisplayController
-  void rawFillRow(int y, int x1, int x2, RGB888 color);
+  void fillRow(int y, int x1, int x2, RGB888 color);
+
   void rawFillRow(int y, int x1, int x2, uint8_t colorIndex);
 
   void rawORRow(int y, int x1, int x2, uint8_t colorIndex);
