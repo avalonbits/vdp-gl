@@ -156,6 +156,9 @@ std::function<uint8_t(RGB888 const &)> VGAController::getPixelLamda(PaintMode mo
   switch (mode) {
     case PaintMode::XOR:
       return [&] (RGB888 const & color) { return preparePixel(color) & 63; };
+    case PaintMode::ANDNOT:
+    case PaintMode::ORNOT:
+      return [&] (RGB888 const & color) { return (~preparePixel(color) & 63) || m_HVSync; };
     default: // PaintMode::Set, et al
       return [&] (RGB888 const & color) { return preparePixel(color); };
   }
@@ -164,32 +167,40 @@ std::function<uint8_t(RGB888 const &)> VGAController::getPixelLamda(PaintMode mo
 std::function<void(int X, int Y, uint8_t pattern)> VGAController::setPixelLamda(PaintMode mode)
 {
   switch (mode) {
+    case PaintMode::Set:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) = pattern; };
     case PaintMode::OR:
+    case PaintMode::ORNOT:
       return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) |= pattern; };
     case PaintMode::AND:
+    case PaintMode::ANDNOT:
       return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) &= pattern; };
     case PaintMode::XOR:
       return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) ^= pattern; };
     case PaintMode::Invert:
       return [&] (int X, int Y, uint8_t pattern) { VGA_INVERT_PIXEL(X, Y); };
-    default:  // PaintMode::Set
-      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) = pattern; };
+    default:  // PaintMode::NoOp
+      return [&] (int X, int Y, uint8_t pattern) { return; };
   }
 }
 
 std::function<void(int Y, int X1, int X2, uint8_t pattern)> VGAController::fillRowLamda(PaintMode mode)
 {
   switch (mode) {
+    case PaintMode::Set:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawFillRow(Y, X1, X2, pattern); };
     case PaintMode::OR:
+    case PaintMode::ORNOT:
       return [&] (int Y, int X1, int X2, uint8_t pattern) { rawORRow(Y, X1, X2, pattern); };
     case PaintMode::AND:
+    case PaintMode::ANDNOT:
       return [&] (int Y, int X1, int X2, uint8_t pattern) { rawANDRow(Y, X1, X2, pattern); };
     case PaintMode::XOR:
       return [&] (int Y, int X1, int X2, uint8_t pattern) { rawXORRow(Y, X1, X2, pattern); };
     case PaintMode::Invert:
       return [&] (int Y, int X1, int X2, uint8_t pattern) { rawInvertRow(Y, X1, X2); };
-    default:  // PaintMode::Set
-      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawFillRow(Y, X1, X2, pattern); };
+    default:  // PaintMode::NoOp
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { return; };
   }
 }
 

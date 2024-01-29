@@ -599,6 +599,9 @@ enum PaintMode : uint8_t {
   XOR = 3,      // XOR colour onto screen
   Invert = 4,   // Invert colour on screen
   NOT = 4,      // NOT colour onto screen, alias for Invert
+  NoOp = 5,     // No operation
+  ANDNOT = 6,   // AND colour on screen with NOT colour
+  ORNOT = 7,    // OR colour on screen with NOT colour
 };
 
 /**
