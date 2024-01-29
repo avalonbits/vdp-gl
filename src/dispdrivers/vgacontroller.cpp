@@ -164,6 +164,7 @@ std::function<uint8_t(RGB888 const &)> VGAController::getPixelLambda(PaintMode m
   }
 }
 
+
 std::function<void(int X, int Y, uint8_t pattern)> VGAController::setPixelLambda(PaintMode mode)
 {
   switch (mode) {
@@ -183,6 +184,7 @@ std::function<void(int X, int Y, uint8_t pattern)> VGAController::setPixelLambda
       return [&] (int X, int Y, uint8_t pattern) { return; };
   }
 }
+
 
 std::function<void(int Y, int X1, int X2, uint8_t pattern)> VGAController::fillRowLambda(PaintMode mode)
 {
