@@ -352,9 +352,9 @@ void IRAM_ATTR VGAController::clear(Rect & updateRect)
 void IRAM_ATTR VGAController::VScroll(int scroll, Rect & updateRect)
 {
   genericVScroll(scroll, updateRect,
-                 [&] (int yA, int yB, int x1, int x2)        { swapRows(yA, yB, x1, x2); },              // swapRowsCopying
-                 [&] (int yA, int yB)                        { tswap(m_viewPort[yA], m_viewPort[yB]); }, // swapRowsPointers
-                 [&] (int y, int x1, int x2, RGB888 pattern) { rawFillRow(y, x1, x2, pattern); }         // rawFillRow
+                 [&] (int yA, int yB, int x1, int x2)      { swapRows(yA, yB, x1, x2); },              // swapRowsCopying
+                 [&] (int yA, int yB)                      { tswap(m_viewPort[yA], m_viewPort[yB]); }, // swapRowsPointers
+                 [&] (int y, int x1, int x2, RGB888 color) { rawFillRow(y, x1, x2, preparePixel(color)); }         // rawFillRow
                 );
 
   if (scroll != 0) {
