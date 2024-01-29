@@ -83,6 +83,28 @@ static inline __attribute__((always_inline)) void VGA8_SETPIXEL(int x, int y, in
   *bits24 ^= ((value << shift) ^ *bits24) & (7 << shift);
 }
 
+static inline __attribute__((always_inline)) void VGA8_ORPIXEL(int x, int y, int value) {
+  auto row = (uint8_t*) VGA8Controller::sgetScanline(y);
+  uint32_t * bits24 = (uint32_t*)(row + (x >> 3) * 3);  // x / 8 * 3
+  int shift = 21 - (x & 7) * 3;
+  *bits24 |= (value << shift);
+}
+
+static inline __attribute__((always_inline)) void VGA8_ANDPIXEL(int x, int y, int value) {
+  auto row = (uint8_t*) VGA8Controller::sgetScanline(y);
+  uint32_t * bits24 = (uint32_t*)(row + (x >> 3) * 3);  // x / 8 * 3
+  int shift = 21 - (x & 7) * 3;
+  value = (~0x00) ^ (7 << shift) | (value << shift);
+  *bits24 &= value;
+}
+
+static inline __attribute__((always_inline)) void VGA8_XORPIXEL(int x, int y, int value) {
+  auto row = (uint8_t*) VGA8Controller::sgetScanline(y);
+  uint32_t * bits24 = (uint32_t*)(row + (x >> 3) * 3);  // x / 8 * 3
+  int shift = 21 - (x & 7) * 3;
+  *bits24 ^= (value << shift);
+}
+
 #define VGA8_GETPIXEL(x, y)                 VGA8_GETPIXELINROW((uint8_t*)VGA8Controller::s_viewPort[(y)], (x))
 
 #define VGA8_INVERT_PIXEL(x, y)             VGA8_INVERTPIXELINROW((uint8_t*)VGA8Controller::s_viewPort[(y)], (x))
@@ -142,12 +164,63 @@ void VGA8Controller::setPaletteItem(int index, RGB888 const & color)
 }
 
 
+std::function<uint8_t(RGB888 const &)> VGA8Controller::getPixelLambda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::ANDNOT:
+    case PaintMode::ORNOT:
+      return [&] (RGB888 const & color) { return (~RGB888toPaletteIndex(color) & 7); };
+    default: // PaintMode::Set, et al
+      return [&] (RGB888 const & color) { return RGB888toPaletteIndex(color); };
+  }
+}
+
+
+std::function<void(int X, int Y, uint8_t colorIndex)> VGA8Controller::setPixelLambda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::Set:
+      return VGA8_SETPIXEL;
+    case PaintMode::OR:
+    case PaintMode::ORNOT:
+      return VGA8_ORPIXEL;
+    case PaintMode::AND:
+    case PaintMode::ANDNOT:
+      return VGA8_ANDPIXEL;
+    case PaintMode::XOR:
+      return VGA8_XORPIXEL;
+    case PaintMode::Invert:
+      return [&] (int X, int Y, uint8_t colorIndex) { VGA8_INVERT_PIXEL(X, Y); };
+    default:  // PaintMode::NoOp
+      return [&] (int X, int Y, uint8_t colorIndex) { return; };
+  }
+}
+
+std::function<void(int Y, int X1, int X2, uint8_t colorIndex)> VGA8Controller::fillRowLambda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::Set:
+      return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawFillRow(Y, X1, X2, colorIndex); };
+    case PaintMode::OR:
+    case PaintMode::ORNOT:
+      return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawORRow(Y, X1, X2, colorIndex); };
+    case PaintMode::AND:
+    case PaintMode::ANDNOT:
+      return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawANDRow(Y, X1, X2, colorIndex); };
+    case PaintMode::XOR:
+      return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawXORRow(Y, X1, X2, colorIndex); };
+    case PaintMode::Invert:
+      return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawInvertRow(Y, X1, X2); };
+    default:  // PaintMode::NoOp
+      return [&] (int Y, int X1, int X2, uint8_t colorIndex) { return; };
+  }
+}
+
+
 void VGA8Controller::setPixelAt(PixelDesc const & pixelDesc, Rect & updateRect)
 {
-  genericSetPixelAt(pixelDesc, updateRect,
-                    [&] (RGB888 const & color) { return RGB888toPaletteIndex(color); },
-                    VGA8_SETPIXEL
-                   );
+  auto paintMode = paintState().paintOptions.mode;
+  genericSetPixelAt(pixelDesc, updateRect, getPixelLambda(paintMode), setPixelLambda(paintMode));
 }
 
 
@@ -155,12 +228,13 @@ void VGA8Controller::setPixelAt(PixelDesc const & pixelDesc, Rect & updateRect)
 // line clipped on current absolute clipping rectangle
 void VGA8Controller::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color)
 {
+  auto paintMode = paintState().paintOptions.mode;
   genericAbsDrawLine(X1, Y1, X2, Y2, color,
-                     [&] (RGB888 const & color)                      { return RGB888toPaletteIndex(color); },
-                     [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawFillRow(Y, X1, X2, colorIndex); },
-                     [&] (int Y, int X1, int X2)                     { rawInvertRow(Y, X1, X2); },
-                     VGA8_SETPIXEL,
-                     [&] (int X, int Y)                              { VGA8_INVERT_PIXEL(X, Y); }
+                     getPixelLambda(paintMode),
+                     fillRowLambda(paintMode),
+                     [&] (int Y, int X1, int X2) { rawInvertRow(Y, X1, X2); },
+                     setPixelLambda(paintMode),
+                     [&] (int X, int Y)          { VGA8_INVERT_PIXEL(X, Y); }
                      );
 }
 
@@ -168,7 +242,12 @@ void VGA8Controller::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color)
 // parameters not checked
 void VGA8Controller::rawFillRow(int y, int x1, int x2, RGB888 color)
 {
-  rawFillRow(y, x1, x2, RGB888toPaletteIndex(color));
+  // pick fill method based on paint mode
+  auto paintMode = paintState().paintOptions.mode;
+  auto getPixel = getPixelLambda(paintMode);
+  auto pixel = getPixel(color);
+  auto fill = fillRowLambda(paintMode);
+  fill(y, x1, x2, pixel);
 }
 
 
@@ -178,6 +257,36 @@ void VGA8Controller::rawFillRow(int y, int x1, int x2, uint8_t colorIndex)
   uint8_t * row = (uint8_t*) m_viewPort[y];
   for (; x1 <= x2; ++x1)
     VGA8_SETPIXELINROW(row, x1, colorIndex);
+}
+
+
+// parameters not checked
+void VGA8Controller::rawORRow(int y, int x1, int x2, uint8_t colorIndex)
+{
+   // naive implementation - just iterate over all pixels
+  for (int x = x1; x <= x2; ++x) {
+    VGA8_ORPIXEL(x, y, colorIndex);
+  }
+}
+
+
+// parameters not checked
+void VGA8Controller::rawANDRow(int y, int x1, int x2, uint8_t colorIndex)
+{
+  // naive implementation - just iterate over all pixels
+  for (int x = x1; x <= x2; ++x) {
+    VGA8_ANDPIXEL(x, y, colorIndex);
+  }
+}
+
+
+// parameters not checked
+void VGA8Controller::rawXORRow(int y, int x1, int x2, uint8_t colorIndex)
+{
+  // naive implementation - just iterate over all pixels
+  for (int x = x1; x <= x2; ++x) {
+    VGA8_XORPIXEL(x, y, colorIndex);
+  }
 }
 
 
@@ -214,10 +323,8 @@ void VGA8Controller::swapRows(int yA, int yB, int x1, int x2)
 
 void VGA8Controller::drawEllipse(Size const & size, Rect & updateRect)
 {
-  genericDrawEllipse(size, updateRect,
-                     [&] (RGB888 const & color)  { return RGB888toPaletteIndex(color); },
-                     VGA8_SETPIXEL
-                    );
+  auto mode = paintState().paintOptions.mode;
+  genericDrawEllipse(size, updateRect, getPixelLambda(mode), setPixelLambda(mode));
 }
 
 
@@ -241,7 +348,7 @@ void VGA8Controller::VScroll(int scroll, Rect & updateRect)
   genericVScroll(scroll, updateRect,
                  [&] (int yA, int yB, int x1, int x2)        { swapRows(yA, yB, x1, x2); },              // swapRowsCopying
                  [&] (int yA, int yB)                        { tswap(m_viewPort[yA], m_viewPort[yB]); }, // swapRowsPointers
-                 [&] (int y, int x1, int x2, RGB888 color)   { rawFillRow(y, x1, x2, color); }           // rawFillRow
+                 [&] (int y, int x1, int x2, RGB888 color)   { rawFillRow(y, x1, x2, RGB888toPaletteIndex(color)); }  // rawFillRow
                 );
 }
 
