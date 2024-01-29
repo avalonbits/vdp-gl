@@ -1087,8 +1087,8 @@ protected:
 
   // coordinates are absolute values (not relative to origin)
   // line clipped on current absolute clipping rectangle
-  template <typename TPreparePixel, typename TRawFillRow, typename TRawInvertRow, typename TRawSetPixel, typename TRawInvertPixel>
-  void genericAbsDrawLine(int X1, int Y1, int X2, int Y2, RGB888 const & color, TPreparePixel preparePixel, TRawFillRow rawFillRow, TRawInvertRow rawInvertRow, TRawSetPixel rawSetPixel, TRawInvertPixel rawInvertPixel)
+  template <typename TPreparePixel, typename TRawFillRow, typename TRawSetPixel>
+  void genericAbsDrawLine(int X1, int Y1, int X2, int Y2, RGB888 const & color, TPreparePixel preparePixel, TRawFillRow rawFillRow, TRawSetPixel rawSetPixel)
   {
     if (paintState().penWidth > 1) {
       absDrawThickLine(X1, Y1, X2, Y2, paintState().penWidth, color);
@@ -1105,10 +1105,7 @@ protected:
         return;
       X1 = iclamp(X1, paintState().absClippingRect.X1, paintState().absClippingRect.X2);
       X2 = iclamp(X2, paintState().absClippingRect.X1, paintState().absClippingRect.X2);
-      if (paintState().paintOptions.NOT)
-        rawInvertRow(Y1, X1, X2);
-      else
-        rawFillRow(Y1, X1, X2, pattern);
+      rawFillRow(Y1, X1, X2, pattern);
     } else if (X1 == X2) {
       // vertical line
       if (X1 < paintState().absClippingRect.X1 || X1 > paintState().absClippingRect.X2)
@@ -1119,13 +1116,8 @@ protected:
         return;
       Y1 = iclamp(Y1, paintState().absClippingRect.Y1, paintState().absClippingRect.Y2);
       Y2 = iclamp(Y2, paintState().absClippingRect.Y1, paintState().absClippingRect.Y2);
-      if (paintState().paintOptions.NOT) {
-        for (int y = Y1; y <= Y2; ++y)
-          rawInvertPixel(X1, y);
-      } else {
-        for (int y = Y1; y <= Y2; ++y)
-          rawSetPixel(X1, y, pattern);
-      }
+      for (int y = Y1; y <= Y2; ++y)
+        rawSetPixel(X1, y, pattern);
     } else {
       // other cases (Bresenham's algorithm)
       // TODO: to optimize
@@ -1147,10 +1139,7 @@ protected:
       int err = (dx > dy ? dx : -dy) / 2;
       while (true) {
         if (paintState().absClippingRect.contains(X1, Y1)) {
-          if (paintState().paintOptions.NOT)
-            rawInvertPixel(X1, Y1);
-          else
-            rawSetPixel(X1, Y1, pattern);
+          rawSetPixel(X1, Y1, pattern);
         }
         if (X1 == X2 && Y1 == Y2)
           break;

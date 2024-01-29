@@ -220,14 +220,11 @@ void IRAM_ATTR VGAController::setPixelAt(PixelDesc const & pixelDesc, Rect & upd
 // line clipped on current absolute clipping rectangle
 void IRAM_ATTR VGAController::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color)
 {
-  auto paintMode = paintState().paintOptions.mode;
-
+  auto paintMode = paintState().paintOptions.NOT ? PaintMode::NOT : paintState().paintOptions.mode;
   genericAbsDrawLine(X1, Y1, X2, Y2, color,
                      getPixelLambda(paintMode),
                      fillRowLambda(paintMode),
-                     [&] (int Y, int X1, int X2) { rawInvertRow(Y, X1, X2); },
-                     setPixelLambda(paintMode),
-                     [&] (int X, int Y)          { VGA_INVERT_PIXEL(X, Y); }
+                     setPixelLambda(paintMode)
                      );
 }
 
