@@ -151,7 +151,7 @@ void IRAM_ATTR VGAController::VSyncInterrupt(void * arg)
 }
 
 
-std::function<uint8_t(RGB888 const &)> VGAController::getPixelLamda(PaintMode mode)
+std::function<uint8_t(RGB888 const &)> VGAController::getPixelLambda(PaintMode mode)
 {
   switch (mode) {
     case PaintMode::XOR:
@@ -164,7 +164,7 @@ std::function<uint8_t(RGB888 const &)> VGAController::getPixelLamda(PaintMode mo
   }
 }
 
-std::function<void(int X, int Y, uint8_t pattern)> VGAController::setPixelLamda(PaintMode mode)
+std::function<void(int X, int Y, uint8_t pattern)> VGAController::setPixelLambda(PaintMode mode)
 {
   switch (mode) {
     case PaintMode::Set:
@@ -184,7 +184,7 @@ std::function<void(int X, int Y, uint8_t pattern)> VGAController::setPixelLamda(
   }
 }
 
-std::function<void(int Y, int X1, int X2, uint8_t pattern)> VGAController::fillRowLamda(PaintMode mode)
+std::function<void(int Y, int X1, int X2, uint8_t pattern)> VGAController::fillRowLambda(PaintMode mode)
 {
   switch (mode) {
     case PaintMode::Set:
@@ -209,7 +209,7 @@ std::function<void(int Y, int X1, int X2, uint8_t pattern)> VGAController::fillR
 void IRAM_ATTR VGAController::setPixelAt(PixelDesc const & pixelDesc, Rect & updateRect)
 {
   auto paintMode = paintState().paintOptions.mode;
-  genericSetPixelAt(pixelDesc, updateRect, getPixelLamda(paintMode), setPixelLamda(paintMode));
+  genericSetPixelAt(pixelDesc, updateRect, getPixelLambda(paintMode), setPixelLambda(paintMode));
 }
 
 
@@ -221,10 +221,10 @@ void IRAM_ATTR VGAController::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888
   auto paintMode = paintState().paintOptions.mode;
 
   genericAbsDrawLine(X1, Y1, X2, Y2, color,
-                     getPixelLamda(paintMode),
-                     fillRowLamda(paintMode),
+                     getPixelLambda(paintMode),
+                     fillRowLambda(paintMode),
                      [&] (int Y, int X1, int X2) { rawInvertRow(Y, X1, X2); },
-                     setPixelLamda(paintMode),
+                     setPixelLambda(paintMode),
                      [&] (int X, int Y)          { VGA_INVERT_PIXEL(X, Y); }
                      );
 }
@@ -236,9 +236,9 @@ void IRAM_ATTR VGAController::rawFillRow(int y, int x1, int x2, RGB888 color)
   // This version, passing an RGB888 color, is only used by shape drawing methods,
   // so we will pick fill method based on paint mode
   auto paintMode = paintState().paintOptions.mode;
-  auto getPixel = getPixelLamda(paintMode);
+  auto getPixel = getPixelLambda(paintMode);
   auto pixel = getPixel(color);
-  auto fill = fillRowLamda(paintMode);
+  auto fill = fillRowLambda(paintMode);
   fill(y, x1, x2, pixel);
 }
 
@@ -333,7 +333,7 @@ void IRAM_ATTR VGAController::swapRows(int yA, int yB, int x1, int x2)
 void IRAM_ATTR VGAController::drawEllipse(Size const & size, Rect & updateRect)
 {
   auto mode = paintState().paintOptions.mode;
-  genericDrawEllipse(size, updateRect, getPixelLamda(mode), setPixelLamda(mode));
+  genericDrawEllipse(size, updateRect, getPixelLambda(mode), setPixelLambda(mode));
 }
 
 

@@ -201,9 +201,10 @@ private:
   void allocateViewPort();
   void onSetupDMABuffer(lldesc_t volatile * buffer, bool isStartOfVertFrontPorch, int scan, bool isVisible, int visibleRow);
 
-  std::function<uint8_t(RGB888 const &)> getPixelLamda(PaintMode mode);
-  std::function<void(int X, int Y, uint8_t pattern)> setPixelLamda(PaintMode mode);
-  std::function<void(int Y, int X1, int X2, uint8_t pattern)> fillRowLamda(PaintMode mode);
+  // methods to get lambdas to get/set pixels
+  std::function<uint8_t(RGB888 const &)> getPixelLambda(PaintMode mode);
+  std::function<void(int X, int Y, uint8_t pattern)> setPixelLambda(PaintMode mode);
+  std::function<void(int Y, int X1, int X2, uint8_t pattern)> fillRowLambda(PaintMode mode);
 
   // abstract method of BitmappedDisplayController
   void setPixelAt(PixelDesc const & pixelDesc, Rect & updateRect);
