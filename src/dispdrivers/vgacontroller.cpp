@@ -158,7 +158,7 @@ std::function<uint8_t(RGB888 const &)> VGAController::getPixelLambda(PaintMode m
       return [&] (RGB888 const & color) { return preparePixel(color) & 63; };
     case PaintMode::ANDNOT:
     case PaintMode::ORNOT:
-      return [&] (RGB888 const & color) { return (~preparePixel(color) & 63) || m_HVSync; };
+      return [&] (RGB888 const & color) { return (~preparePixel(color) & 63) | m_HVSync; };
     default: // PaintMode::Set, et al
       return [&] (RGB888 const & color) { return preparePixel(color); };
   }
