@@ -188,6 +188,34 @@ std::function<void(int X, int Y, uint8_t colorIndex)> VGA4Controller::setPixelLa
   }
 }
 
+
+std::function<void(uint8_t * row, int x, uint8_t colorIndex)> VGA4Controller::setRowPixelLambda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::Set:
+      return VGA4_SETPIXELINROW;
+    case PaintMode::OR:
+    case PaintMode::ORNOT:
+      return [&] (uint8_t * row, int x, uint8_t colorIndex) {
+        VGA4_SETPIXELINROW(row, x, VGA4_GETPIXELINROW(row, x) | colorIndex);
+      };
+    case PaintMode::AND:
+    case PaintMode::ANDNOT:
+      return [&] (uint8_t * row, int x, uint8_t colorIndex) {
+        VGA4_SETPIXELINROW(row, x, VGA4_GETPIXELINROW(row, x) & colorIndex);
+      };
+    case PaintMode::XOR:
+      return [&] (uint8_t * row, int x, uint8_t colorIndex) {
+        VGA4_SETPIXELINROW(row, x, VGA4_GETPIXELINROW(row, x) ^ colorIndex);
+      };
+    case PaintMode::Invert:
+      return [&] (uint8_t * row, int x, uint8_t colorIndex) { VGA4_INVERTPIXELINROW(row, x); };
+    default:  // PaintMode::NoOp
+      return [&] (uint8_t * row, int x, uint8_t colorIndex) { return; };
+  }
+}
+
+
 std::function<void(int Y, int X1, int X2, uint8_t colorIndex)> VGA4Controller::fillRowLambda(PaintMode mode)
 {
   switch (mode) {
@@ -470,10 +498,13 @@ void VGA4Controller::HScroll(int scroll, Rect & updateRect)
 
 void VGA4Controller::drawGlyph(Glyph const & glyph, GlyphOptions glyphOptions, RGB888 penColor, RGB888 brushColor, Rect & updateRect)
 {
+  auto mode = paintState().paintOptions.mode;
+  auto getPixel = getPixelLambda(mode);
+  auto setRowPixel = setRowPixelLambda(mode);
   genericDrawGlyph(glyph, glyphOptions, penColor, brushColor, updateRect,
-                   [&] (RGB888 const & color)                     { return RGB888toPaletteIndex(color); },
-                   [&] (int y)                                    { return (uint8_t*) m_viewPort[y]; },
-                   VGA4_SETPIXELINROW
+                   getPixel,
+                   [&] (int y) { return (uint8_t*) m_viewPort[y]; },
+                   setRowPixel
                   );
 }
 

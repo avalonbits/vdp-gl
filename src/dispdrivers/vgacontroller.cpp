@@ -186,6 +186,28 @@ std::function<void(int X, int Y, uint8_t pattern)> VGAController::setPixelLambda
 }
 
 
+std::function<void(uint8_t * row, int x, uint8_t pattern)> VGAController::setRowPixelLambda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::Set:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) = pattern; };
+    case PaintMode::OR:
+    case PaintMode::ORNOT:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) |= pattern; };
+    case PaintMode::AND:
+    case PaintMode::ANDNOT:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) &= pattern; };
+    case PaintMode::XOR:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) ^= pattern; };
+    case PaintMode::Invert:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { auto px = &VGA_PIXELINROW(row, x); *px = ~(*px ^ VGA_SYNC_MASK); };
+    default:  // PaintMode::NoOp
+      return [&] (uint8_t * row, int x, uint8_t pattern) { return; };
+  
+  }
+}
+
+
 std::function<void(int Y, int X1, int X2, uint8_t pattern)> VGAController::fillRowLambda(PaintMode mode)
 {
   switch (mode) {
@@ -535,10 +557,13 @@ void IRAM_ATTR VGAController::HScroll(int scroll, Rect & updateRect)
 
 void IRAM_ATTR VGAController::drawGlyph(Glyph const & glyph, GlyphOptions glyphOptions, RGB888 penColor, RGB888 brushColor, Rect & updateRect)
 {
+  auto mode = paintState().paintOptions.mode;
+  auto getPixel = getPixelLambda(mode);
+  auto setRowPixel = setRowPixelLambda(mode);
   genericDrawGlyph(glyph, glyphOptions, penColor, brushColor, updateRect,
-                   [&] (RGB888 const & color) { return preparePixel(color); },
-                   [&] (int y)                { return (uint8_t*) m_viewPort[y]; },
-                   [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) = pattern; }
+                   getPixel,
+                   [&] (int y) { return (uint8_t*) m_viewPort[y]; },
+                   setRowPixel
                   );
 }
 
