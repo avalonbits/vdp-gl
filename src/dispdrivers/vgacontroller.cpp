@@ -151,31 +151,30 @@ void IRAM_ATTR VGAController::VSyncInterrupt(void * arg)
 }
 
 
-std::function<uint8_t(RGB888 const &)> VGAController::getPixelLambda(PaintMode mode)
+std::function<uint8_t(RGB888 const &)> IRAM_ATTR VGAController::getPixelLambda(PaintMode mode)
 {
   switch (mode) {
     case PaintMode::XOR:
       return [&] (RGB888 const & color) { return preparePixel(color) & 63; };
-    case PaintMode::ANDNOT:
-    case PaintMode::ORNOT:
-      return [&] (RGB888 const & color) { return (~preparePixel(color) & 63) | m_HVSync; };
     default: // PaintMode::Set, et al
       return [&] (RGB888 const & color) { return preparePixel(color); };
   }
 }
 
 
-std::function<void(int X, int Y, uint8_t pattern)> VGAController::setPixelLambda(PaintMode mode)
+std::function<void(int X, int Y, uint8_t pattern)> IRAM_ATTR VGAController::setPixelLambda(PaintMode mode)
 {
   switch (mode) {
     case PaintMode::Set:
       return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) = pattern; };
     case PaintMode::OR:
-    case PaintMode::ORNOT:
       return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) |= pattern; };
+    case PaintMode::ORNOT:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) |= (~pattern) & 63; };
     case PaintMode::AND:
-    case PaintMode::ANDNOT:
       return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) &= pattern; };
+    case PaintMode::ANDNOT:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) &= ((~pattern) & 63) | m_HVSync; };
     case PaintMode::XOR:
       return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) ^= pattern; };
     case PaintMode::Invert:
@@ -186,19 +185,21 @@ std::function<void(int X, int Y, uint8_t pattern)> VGAController::setPixelLambda
 }
 
 
-std::function<void(uint8_t * row, int x, uint8_t pattern)> VGAController::setRowPixelLambda(PaintMode mode)
+std::function<void(uint8_t * row, int x, uint8_t pattern)> IRAM_ATTR VGAController::setRowPixelLambda(PaintMode mode)
 {
   switch (mode) {
     case PaintMode::Set:
       return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) = pattern; };
     case PaintMode::OR:
-    case PaintMode::ORNOT:
       return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) |= pattern; };
+    case PaintMode::ORNOT:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) |= (~pattern & 63); };
     case PaintMode::AND:
-    case PaintMode::ANDNOT:
       return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) &= pattern; };
+    case PaintMode::ANDNOT:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) &= (~pattern & 63) | m_HVSync; };
     case PaintMode::XOR:
-      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) ^= pattern; };
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) ^= pattern & 63; };
     case PaintMode::Invert:
       return [&] (uint8_t * row, int x, uint8_t pattern) { auto px = &VGA_PIXELINROW(row, x); *px = ~(*px ^ VGA_SYNC_MASK); };
     default:  // PaintMode::NoOp
@@ -208,17 +209,19 @@ std::function<void(uint8_t * row, int x, uint8_t pattern)> VGAController::setRow
 }
 
 
-std::function<void(int Y, int X1, int X2, uint8_t pattern)> VGAController::fillRowLambda(PaintMode mode)
+std::function<void(int Y, int X1, int X2, uint8_t pattern)> IRAM_ATTR VGAController::fillRowLambda(PaintMode mode)
 {
   switch (mode) {
     case PaintMode::Set:
       return [&] (int Y, int X1, int X2, uint8_t pattern) { rawFillRow(Y, X1, X2, pattern); };
     case PaintMode::OR:
-    case PaintMode::ORNOT:
       return [&] (int Y, int X1, int X2, uint8_t pattern) { rawORRow(Y, X1, X2, pattern); };
+    case PaintMode::ORNOT:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawORRow(Y, X1, X2, (~pattern & 63)); };
     case PaintMode::AND:
-    case PaintMode::ANDNOT:
       return [&] (int Y, int X1, int X2, uint8_t pattern) { rawANDRow(Y, X1, X2, pattern); };
+    case PaintMode::ANDNOT:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawANDRow(Y, X1, X2, (~pattern & 63) | m_HVSync); };
     case PaintMode::XOR:
       return [&] (int Y, int X1, int X2, uint8_t pattern) { rawXORRow(Y, X1, X2, pattern); };
     case PaintMode::Invert:
@@ -638,9 +641,22 @@ void VGAController::writeScreen(Rect const & rect, RGB222 * srcBuf)
 
 void IRAM_ATTR VGAController::rawDrawBitmap_Native(int destX, int destY, Bitmap const * bitmap, int X1, int Y1, int XCount, int YCount)
 {
+  auto paintMode = paintState().paintOptions.mode;
+  auto setRowPixel = setRowPixelLambda(paintMode);
+
+  if (paintState().paintOptions.swapFGBG) {
+    // used for bitmap plots to indicate drawing with BG color instead of bitmap color
+    auto bg = preparePixel(paintState().penColor);
+    genericRawDrawBitmap_Native(destX, destY, (uint8_t*) bitmap->data, bitmap->width, X1, Y1, XCount, YCount,
+                                [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },         // rawGetRow
+                                [&] (uint8_t * row, int x, uint8_t src) { setRowPixel(row, x, bg); }  // rawSetPixelInRow
+                              );
+    return;
+  }
+
   genericRawDrawBitmap_Native(destX, destY, (uint8_t*) bitmap->data, bitmap->width, X1, Y1, XCount, YCount,
                               [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },         // rawGetRow
-                              [&] (uint8_t * row, int x, uint8_t src) { VGA_PIXELINROW(row, x) = m_HVSync | src; }  // rawSetPixelInRow
+                              setRowPixel
                              );
 }
 
