@@ -131,13 +131,6 @@ void VGA2Controller::setPaletteItem(int index, RGB888 const & color)
 std::function<uint8_t(RGB888 const &)> VGA2Controller::getPixelLambda(PaintMode mode)
 {
   return [&] (RGB888 const & color) { return RGB888toPaletteIndex(color); };
-  // switch (mode) {
-  //   case PaintMode::ANDNOT:
-  //   case PaintMode::ORNOT:
-  //     return [&] (RGB888 const & color) { return (~RGB888toPaletteIndex(color) & 1); };
-  //   default: // PaintMode::Set, et al
-  //     return [&] (RGB888 const & color) { return RGB888toPaletteIndex(color); };
-  // }
 }
 
 
