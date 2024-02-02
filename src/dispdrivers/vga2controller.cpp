@@ -130,13 +130,14 @@ void VGA2Controller::setPaletteItem(int index, RGB888 const & color)
 
 std::function<uint8_t(RGB888 const &)> VGA2Controller::getPixelLambda(PaintMode mode)
 {
-  switch (mode) {
-    case PaintMode::ANDNOT:
-    case PaintMode::ORNOT:
-      return [&] (RGB888 const & color) { return (~RGB888toPaletteIndex(color) & 1); };
-    default: // PaintMode::Set, et al
-      return [&] (RGB888 const & color) { return RGB888toPaletteIndex(color); };
-  }
+  return [&] (RGB888 const & color) { return RGB888toPaletteIndex(color); };
+  // switch (mode) {
+  //   case PaintMode::ANDNOT:
+  //   case PaintMode::ORNOT:
+  //     return [&] (RGB888 const & color) { return (~RGB888toPaletteIndex(color) & 1); };
+  //   default: // PaintMode::Set, et al
+  //     return [&] (RGB888 const & color) { return RGB888toPaletteIndex(color); };
+  // }
 }
 
 
@@ -146,11 +147,16 @@ std::function<void(int X, int Y, uint8_t colorIndex)> VGA2Controller::setPixelLa
     case PaintMode::Set:
       return VGA2_SETPIXEL;
     case PaintMode::OR:
-    case PaintMode::ORNOT:
       return [&] (int X, int Y, uint8_t colorIndex) { if (colorIndex == 1) VGA2_SETPIXEL(X, Y, colorIndex); };
+    case PaintMode::ORNOT:
+      return [&] (int X, int Y, uint8_t colorIndex) { if (colorIndex == 0) VGA2_SETPIXEL(X, Y, 1); };
     case PaintMode::AND:
-    case PaintMode::ANDNOT:
       return [&] (int X, int Y, uint8_t colorIndex) { if (colorIndex == 0) VGA2_SETPIXEL(X, Y, colorIndex); };
+    case PaintMode::ANDNOT:
+      return [&] (int X, int Y, uint8_t colorIndex) {
+        auto px = VGA2_GETPIXEL(X, Y);
+        VGA2_SETPIXEL(X, Y, px & (~colorIndex & 1));
+      };
     case PaintMode::XOR:
       return [&] (int X, int Y, uint8_t colorIndex) { if (colorIndex == 1) VGA2_INVERT_PIXEL(X, Y); };
     case PaintMode::Invert:
@@ -167,11 +173,16 @@ std::function<void(uint8_t * row, int x, uint8_t colorIndex)> VGA2Controller::se
     case PaintMode::Set:
       return VGA2_SETPIXELINROW;
     case PaintMode::OR:
-    case PaintMode::ORNOT:
       return [&] (uint8_t * row, int x, uint8_t colorIndex) { if (colorIndex == 1) VGA2_SETPIXELINROW(row, x, colorIndex); };
+    case PaintMode::ORNOT:
+      return [&] (uint8_t * row, int x, uint8_t colorIndex) { if (colorIndex == 0) VGA2_SETPIXELINROW(row, x, 1); };
     case PaintMode::AND:
-    case PaintMode::ANDNOT:
       return [&] (uint8_t * row, int x, uint8_t colorIndex) { if (colorIndex == 0) VGA2_SETPIXELINROW(row, x, colorIndex); };
+    case PaintMode::ANDNOT:
+      return [&] (uint8_t * row, int x, uint8_t colorIndex) {
+        auto px = VGA2_GETPIXELINROW(row, x);
+        VGA2_SETPIXELINROW(row, x, px & (~colorIndex & 1));
+      };
     case PaintMode::XOR:
       return [&] (uint8_t * row, int x, uint8_t colorIndex) { if (colorIndex == 1) VGA2_INVERTPIXELINROW(row, x); };
     case PaintMode::Invert:
@@ -188,11 +199,13 @@ std::function<void(int Y, int X1, int X2, uint8_t colorIndex)> VGA2Controller::f
     case PaintMode::Set:
       return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawFillRow(Y, X1, X2, colorIndex); };
     case PaintMode::OR:
-    case PaintMode::ORNOT:
       return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawORRow(Y, X1, X2, colorIndex); };
+    case PaintMode::ORNOT:
+      return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawORRow(Y, X1, X2, ~colorIndex & 1); };
     case PaintMode::AND:
-    case PaintMode::ANDNOT:
       return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawANDRow(Y, X1, X2, colorIndex); };
+    case PaintMode::ANDNOT:
+      return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawANDRow(Y, X1, X2, ~colorIndex & 1); };
     case PaintMode::XOR:
       return [&] (int Y, int X1, int X2, uint8_t colorIndex) { rawXORRow(Y, X1, X2, colorIndex); };
     case PaintMode::Invert:
@@ -523,40 +536,83 @@ void VGA2Controller::readScreen(Rect const & rect, RGB888 * destBuf)
 
 void VGA2Controller::rawDrawBitmap_Native(int destX, int destY, Bitmap const * bitmap, int X1, int Y1, int XCount, int YCount)
 {
+  auto paintMode = paintState().paintOptions.mode;
+  auto setRowPixel = setRowPixelLambda(paintMode);
+
+  if (paintState().paintOptions.swapFGBG) {
+    // used for bitmap plots to indicate drawing with BG color instead of bitmap color
+    auto bg = RGB888toPaletteIndex(paintState().penColor);
+    genericRawDrawBitmap_Native(destX, destY, (uint8_t*) bitmap->data, bitmap->width, X1, Y1, XCount, YCount,
+                                [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
+                                [&] (uint8_t * row, int x, uint8_t src) { setRowPixel(row, x, bg); }           // rawSetPixelInRow
+                              );
+    return;
+  }
+
   genericRawDrawBitmap_Native(destX, destY, (uint8_t*) bitmap->data, bitmap->width, X1, Y1, XCount, YCount,
                               [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
-                              VGA2_SETPIXELINROW
+                              setRowPixel
                              );
 }
 
 
 void VGA2Controller::rawDrawBitmap_Mask(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount)
 {
-  auto foregroundColorIndex = RGB888toPaletteIndex(bitmap->foregroundColor);
+  auto paintMode = paintState().paintOptions.mode;
+  auto setRowPixel = setRowPixelLambda(paintMode);
+  auto foregroundColorIndex = RGB888toPaletteIndex(paintState().paintOptions.swapFGBG ? paintState().penColor : bitmap->foregroundColor);
   genericRawDrawBitmap_Mask(destX, destY, bitmap, (uint8_t*)saveBackground, X1, Y1, XCount, YCount,
-                            [&] (int y)                  { return (uint8_t*) m_viewPort[y]; },                   // rawGetRow
+                            [&] (int y)                  { return (uint8_t*) m_viewPort[y]; },           // rawGetRow
                             VGA2_GETPIXELINROW,
-                            [&] (uint8_t * row, int x)   { VGA2_SETPIXELINROW(row, x, foregroundColorIndex); }  // rawSetPixelInRow
+                            [&] (uint8_t * row, int x)   { setRowPixel(row, x, foregroundColorIndex); }  // rawSetPixelInRow
                            );
 }
 
 
 void VGA2Controller::rawDrawBitmap_RGBA2222(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount)
 {
+  auto paintMode = paintState().paintOptions.mode;
+  auto setRowPixel = setRowPixelLambda(paintMode);
+
+  if (paintState().paintOptions.swapFGBG) {
+    // used for bitmap plots to indicate drawing with BG color instead of bitmap color
+    auto bg = RGB888toPaletteIndex(paintState().penColor);
+    genericRawDrawBitmap_RGBA2222(destX, destY, bitmap, (uint8_t*)saveBackground, X1, Y1, XCount, YCount,
+                                  [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
+                                  VGA2_GETPIXELINROW,                                                            // rawGetPixelInRow
+                                  [&] (uint8_t * row, int x, uint8_t src) { setRowPixel(row, x, bg); }           // rawSetPixelInRow
+                                );
+    return;
+  }
+
   genericRawDrawBitmap_RGBA2222(destX, destY, bitmap, (uint8_t*)saveBackground, X1, Y1, XCount, YCount,
                                 [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },       // rawGetRow
                                 VGA2_GETPIXELINROW,
-                                [&] (uint8_t * row, int x, uint8_t src) { VGA2_SETPIXELINROW(row, x, RGB2222toPaletteIndex(src)); }       // rawSetPixelInRow
+                                [&] (uint8_t * row, int x, uint8_t src) { setRowPixel(row, x, RGB2222toPaletteIndex(src)); }  // rawSetPixelInRow
                                );
 }
 
 
 void VGA2Controller::rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount)
 {
+  auto paintMode = paintState().paintOptions.mode;
+  auto setRowPixel = setRowPixelLambda(paintMode);
+
+  if (paintState().paintOptions.swapFGBG) {
+    // used for bitmap plots to indicate drawing with BG color instead of bitmap color
+    auto bg = RGB888toPaletteIndex(paintState().penColor);
+    genericRawDrawBitmap_RGBA8888(destX, destY, bitmap, (uint8_t*)saveBackground, X1, Y1, XCount, YCount,
+                                  [&] (int y)                                      { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
+                                  VGA2_GETPIXELINROW,                                                                     // rawGetPixelInRow
+                                  [&] (uint8_t * row, int x, RGBA8888 const & src) { setRowPixel(row, x, bg); }           // rawSetPixelInRow
+                                  );
+    return;
+  }
+
   genericRawDrawBitmap_RGBA8888(destX, destY, bitmap, (uint8_t*)saveBackground, X1, Y1, XCount, YCount,
-                                 [&] (int y)                                      { return (uint8_t*) m_viewPort[y]; },     // rawGetRow
-                                 [&] (uint8_t * row, int x)                       { return VGA2_GETPIXELINROW(row, x); },  // rawGetPixelInRow
-                                 [&] (uint8_t * row, int x, RGBA8888 const & src) { VGA2_SETPIXELINROW(row, x, RGB8888toPaletteIndex(src)); }   // rawSetPixelInRow
+                                 [&] (int y)                                      { return (uint8_t*) m_viewPort[y]; },   // rawGetRow
+                                 VGA2_GETPIXELINROW,                                                                      // rawGetPixelInRow
+                                 [&] (uint8_t * row, int x, RGBA8888 const & src) { setRowPixel(row, x, RGB8888toPaletteIndex(src)); }   // rawSetPixelInRow
                                 );
 }
 
