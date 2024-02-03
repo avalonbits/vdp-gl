@@ -167,6 +167,7 @@ Sprite::Sprite()
   visible                 = true;
   isStatic                = false;
   allowDraw               = true;
+  paintOptions            = PaintOptions();
 }
 
 
@@ -570,6 +571,9 @@ void IRAM_ATTR BitmappedDisplayController::hideSprites(Rect & updateRect)
 {
   if (!m_spritesHidden) {
     m_spritesHidden = true;
+    auto & options = paintState().paintOptions;
+    auto savedPaintMode = options.mode;
+    options.mode = PaintMode::Set;
 
     // normal sprites
     if (spritesCount() > 0 && !isDoubleBuffered()) {
@@ -602,6 +606,7 @@ void IRAM_ATTR BitmappedDisplayController::hideSprites(Rect & updateRect)
       mouseSprite->savedBackgroundWidth = mouseSprite->savedBackgroundHeight = 0;
     }
 
+    options.mode = savedPaintMode;
   }
 }
 
@@ -610,6 +615,7 @@ void IRAM_ATTR BitmappedDisplayController::showSprites(Rect & updateRect)
 {
   if (m_spritesHidden) {
     m_spritesHidden = false;
+    auto options = paintState().paintOptions;
 
     // normal sprites
     // save backgrounds and draw sprites
@@ -622,6 +628,7 @@ void IRAM_ATTR BitmappedDisplayController::showSprites(Rect & updateRect)
         Bitmap const * bitmap = sprite->getFrame();
         int bitmapWidth  = bitmap->width;
         int bitmapHeight = bitmap->height;
+        paintState().paintOptions = sprite->paintOptions;
         absDrawBitmap(spriteX, spriteY, bitmap, sprite->savedBackground, true);
         sprite->savedX = spriteX;
         sprite->savedY = spriteY;
@@ -643,6 +650,7 @@ void IRAM_ATTR BitmappedDisplayController::showSprites(Rect & updateRect)
       Bitmap const * bitmap = mouseSprite->getFrame();
       int bitmapWidth  = bitmap->width;
       int bitmapHeight = bitmap->height;
+      paintState().paintOptions = PaintOptions();
       absDrawBitmap(spriteX, spriteY, bitmap, mouseSprite->savedBackground, true);
       mouseSprite->savedX = spriteX;
       mouseSprite->savedY = spriteY;
@@ -651,6 +659,7 @@ void IRAM_ATTR BitmappedDisplayController::showSprites(Rect & updateRect)
       updateRect = updateRect.merge(Rect(spriteX, spriteY, spriteX + bitmapWidth - 1, spriteY + bitmapHeight - 1));
     }
 
+    paintState().paintOptions = options;
   }
 }
 
