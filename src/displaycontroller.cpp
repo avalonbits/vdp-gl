@@ -544,6 +544,7 @@ void BitmappedDisplayController::setSprites(Sprite * sprites, int count, int spr
     uint8_t * spritePtr = (uint8_t*)m_sprites;
     for (int i = 0; i < m_spritesCount; ++i, spritePtr += m_spriteSize) {
       Sprite * sprite = (Sprite*) spritePtr;
+      sprite->savedBackgroundWidth = 0;
       int reqBackBufferSize = 0;
       for (int i = 0; i < sprite->framesCount; ++i)
         reqBackBufferSize = tmax(reqBackBufferSize, sprite->frames[i]->width * getBitmapSavePixelSize() * sprite->frames[i]->height);
