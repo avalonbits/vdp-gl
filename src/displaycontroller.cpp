@@ -535,6 +535,8 @@ void BitmappedDisplayController::setSprites(Sprite * sprites, int count, int spr
 {
   processPrimitives();
   primitivesExecutionWait();
+  auto updateRect = Rect(0, 0, getViewPortWidth() - 1, getViewPortHeight() - 1);
+  hideSprites(updateRect);
   m_sprites      = sprites;
   m_spriteSize   = spriteSize;
   m_spritesCount = count;
@@ -544,7 +546,6 @@ void BitmappedDisplayController::setSprites(Sprite * sprites, int count, int spr
     uint8_t * spritePtr = (uint8_t*)m_sprites;
     for (int i = 0; i < m_spritesCount; ++i, spritePtr += m_spriteSize) {
       Sprite * sprite = (Sprite*) spritePtr;
-      sprite->savedBackgroundWidth = 0;
       int reqBackBufferSize = 0;
       for (int i = 0; i < sprite->framesCount; ++i)
         reqBackBufferSize = tmax(reqBackBufferSize, sprite->frames[i]->width * getBitmapSavePixelSize() * sprite->frames[i]->height);
@@ -552,6 +553,7 @@ void BitmappedDisplayController::setSprites(Sprite * sprites, int count, int spr
         sprite->savedBackground = (uint8_t*) realloc(sprite->savedBackground, reqBackBufferSize);
     }
   }
+  showSprites(updateRect);
 }
 
 
