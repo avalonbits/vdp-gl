@@ -533,8 +533,7 @@ void IRAM_ATTR BitmappedDisplayController::processPrimitives()
 
 void BitmappedDisplayController::setSprites(Sprite * sprites, int count, int spriteSize)
 {
-  processPrimitives();
-  primitivesExecutionWait();
+  suspendBackgroundPrimitiveExecution();
   auto updateRect = Rect(0, 0, getViewPortWidth() - 1, getViewPortHeight() - 1);
   hideSprites(updateRect);
   m_sprites      = sprites;
@@ -553,7 +552,9 @@ void BitmappedDisplayController::setSprites(Sprite * sprites, int count, int spr
         sprite->savedBackground = (uint8_t*) realloc(sprite->savedBackground, reqBackBufferSize);
     }
   }
-  showSprites(updateRect);
+  resumeBackgroundPrimitiveExecution();
+  Primitive p(PrimitiveCmd::RefreshSprites);
+  addPrimitive(p);
 }
 
 
@@ -574,9 +575,6 @@ void IRAM_ATTR BitmappedDisplayController::hideSprites(Rect & updateRect)
 {
   if (!m_spritesHidden) {
     m_spritesHidden = true;
-    auto & options = paintState().paintOptions;
-    auto savedPaintMode = options.mode;
-    options.mode = PaintMode::Set;
 
     // normal sprites
     if (spritesCount() > 0 && !isDoubleBuffered()) {
@@ -608,8 +606,6 @@ void IRAM_ATTR BitmappedDisplayController::hideSprites(Rect & updateRect)
       updateRect = updateRect.merge(Rect(savedX, savedY, savedX + savedWidth - 1, savedY + savedHeight - 1));
       mouseSprite->savedBackgroundWidth = mouseSprite->savedBackgroundHeight = 0;
     }
-
-    options.mode = savedPaintMode;
   }
 }
 

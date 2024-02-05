@@ -641,22 +641,9 @@ void VGAController::writeScreen(Rect const & rect, RGB222 * srcBuf)
 
 void IRAM_ATTR VGAController::rawDrawBitmap_Native(int destX, int destY, Bitmap const * bitmap, int X1, int Y1, int XCount, int YCount)
 {
-  auto paintMode = paintState().paintOptions.mode;
-  auto setRowPixel = setRowPixelLambda(paintMode);
-
-  if (paintState().paintOptions.swapFGBG) {
-    // used for bitmap plots to indicate drawing with BG color instead of bitmap color
-    auto bg = preparePixel(paintState().penColor);
-    genericRawDrawBitmap_Native(destX, destY, (uint8_t*) bitmap->data, bitmap->width, X1, Y1, XCount, YCount,
-                                [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
-                                [&] (uint8_t * row, int x, uint8_t src) { setRowPixel(row, x, bg); }           // rawSetPixelInRow
-                              );
-    return;
-  }
-
   genericRawDrawBitmap_Native(destX, destY, (uint8_t*) bitmap->data, bitmap->width, X1, Y1, XCount, YCount,
                               [&] (int y) { return (uint8_t*) m_viewPort[y]; },   // rawGetRow
-                              setRowPixel
+                              [&] (uint8_t * row, int x, uint8_t src) { VGA_PIXELINROW(row, x) = src; }  // rawSetPixelInRow
                              );
 }
 
@@ -727,7 +714,7 @@ void IRAM_ATTR VGAController::rawCopyToBitmap(int srcX, int srcY, int width, voi
 {
   genericRawCopyToBitmap(srcX, srcY, width, (uint8_t*)saveBuffer, X1, Y1, XCount, YCount,
                         [&] (int y)                { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
-                        [&] (uint8_t * row, int x) { return VGA_PIXELINROW(row, x); }     // rawGetPixelInRow
+                        [&] (uint8_t * row, int x) { return 0xC0 | VGA_PIXELINROW(row, x); }     // rawGetPixelInRow
                       );
 }
 
