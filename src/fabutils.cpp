@@ -373,6 +373,13 @@ Rect IRAM_ATTR Rect::intersection(Rect const & rect) const
 }
 
 
+bool getBit(uint8_t* array, size_t bitIndex) {
+    size_t byteIndex = bitIndex / 8;
+    int bitPosition = 7 - (bitIndex % 8);
+    return (array[byteIndex] >> bitPosition) & 1;
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////////
 // rgb222_to_hsv
 // R, G, B in the 0..3 range

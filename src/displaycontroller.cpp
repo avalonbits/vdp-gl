@@ -418,6 +418,9 @@ void IRAM_ATTR BitmappedDisplayController::resetPaintState()
   m_paintState.absClippingRect       = m_paintState.clippingRect;
   m_paintState.penWidth              = 1;
   m_paintState.lineEnds              = LineEnds::None;
+  m_paintState.linePattern           = LinePattern();
+  m_paintState.lineOptions           = LineOptions();
+  m_paintState.linePatternLength     = 8;
 }
 
 
@@ -817,6 +820,18 @@ void IRAM_ATTR BitmappedDisplayController::execPrimitive(Primitive const & prim,
       break;
     case PrimitiveCmd::SetLineEnds:
       paintState().lineEnds = prim.lineEnds;
+      break;
+    case PrimitiveCmd::SetLinePattern:
+      paintState().linePattern = prim.linePattern;
+      break;
+    case PrimitiveCmd::SetLinePatternLength:
+      paintState().linePatternLength = imin(64, imax(1, prim.ivalue));
+      break;
+    case PrimitiveCmd::SetLinePatternOffset:
+      paintState().linePattern.offset = prim.ivalue % paintState().linePatternLength;
+      break;
+    case PrimitiveCmd::SetLineOptions:
+      paintState().lineOptions = prim.lineOptions;
       break;
   }
 }
