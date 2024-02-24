@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <atomic>
+#include <functional>
 
 #include "driver/gpio.h"
 
@@ -122,6 +123,12 @@ protected:
 
 private:
 
+  // methods to get lambdas to get/set pixels
+  std::function<uint8_t(RGB888 const &)> getPixelLambda(PaintMode mode);
+  std::function<void(int X, int Y, uint8_t colorIndex)> setPixelLambda(PaintMode mode);
+  std::function<void(uint8_t * row, int x, uint8_t colorIndex)> setRowPixelLambda(PaintMode mode);
+  std::function<void(int Y, int X1, int X2, uint8_t colorIndex)> fillRowLambda(PaintMode mode);
+
   // abstract method of BitmappedDisplayController
   void setPixelAt(PixelDesc const & pixelDesc, Rect & updateRect);
 
@@ -165,8 +172,15 @@ private:
   void rawCopyToBitmap(int srcX, int srcY, int width, void * saveBuffer, int X1, int Y1, int XCount, int YCount);
 
   // abstract method of BitmappedDisplayController
-  void rawFillRow(int y, int x1, int x2, RGB888 color);
+  void fillRow(int y, int x1, int x2, RGB888 color);
+
   void rawFillRow(int y, int x1, int x2, uint8_t colorIndex);
+
+  void rawORRow(int y, int x1, int x2, uint8_t colorIndex);
+
+  void rawANDRow(int y, int x1, int x2, uint8_t colorIndex);
+
+  void rawXORRow(int y, int x1, int x2, uint8_t colorIndex);
 
   void rawInvertRow(int y, int x1, int x2);
 

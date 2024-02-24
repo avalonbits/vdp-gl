@@ -539,6 +539,30 @@ struct Cursor {
 struct QuadTreeObject;
 
 
+enum PaintMode : uint8_t {
+  Set = 0,      // Plot colour
+  OR = 1,       // OR colour onto screen
+  AND = 2,      // AND colour onto screen
+  XOR = 3,      // XOR colour onto screen
+  Invert = 4,   // Invert colour on screen
+  NOT = 4,      // NOT colour onto screen, alias for Invert
+  NoOp = 5,     // No operation
+  ANDNOT = 6,   // AND colour on screen with NOT colour
+  ORNOT = 7,    // OR colour on screen with NOT colour
+};
+
+/**
+ * @brief Specifies general paint options.
+ */
+struct PaintOptions {
+  uint8_t swapFGBG : 1;  /**< If enabled swaps foreground and background colors */
+  uint8_t NOT      : 1;  /**< If enabled performs NOT logical operator on destination. Implemented only for straight lines and non-filled rectangles. */
+  PaintMode mode   : 3;  /**< Paint mode */
+
+  PaintOptions() : swapFGBG(false), NOT(false), mode(PaintMode::Set) { }
+} __attribute__ ((packed));
+
+
 /**
  * @brief Represents a sprite.
  *
@@ -559,6 +583,7 @@ struct Sprite {
   int16_t            savedBackgroundHeight;
   uint8_t *          savedBackground;
   QuadTreeObject *   collisionDetectorObject;
+  PaintOptions       paintOptions;
   struct {
     uint8_t visible:  1;
     // A static sprite should be positioned before dynamic sprites.
@@ -589,17 +614,6 @@ struct Path {
   Point const * points;
   int           pointsCount;
   bool          freePoints; // deallocate points after drawing
-} __attribute__ ((packed));
-
-
-/**
- * @brief Specifies general paint options.
- */
-struct PaintOptions {
-  uint8_t swapFGBG : 1;  /**< If enabled swaps foreground and background colors */
-  uint8_t NOT      : 1;  /**< If enabled performs NOT logical operator on destination. Implemented only for straight lines and non-filled rectangles. */
-
-  PaintOptions() : swapFGBG(false), NOT(false) { }
 } __attribute__ ((packed));
 
 
@@ -924,7 +938,7 @@ protected:
 
   virtual void absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color) = 0;
 
-  virtual void rawFillRow(int y, int x1, int x2, RGB888 color) = 0;
+  virtual void fillRow(int y, int x1, int x2, RGB888 color) = 0;
 
   virtual void drawEllipse(Size const & size, Rect & updateRect) = 0;
 
@@ -1074,8 +1088,8 @@ protected:
 
   // coordinates are absolute values (not relative to origin)
   // line clipped on current absolute clipping rectangle
-  template <typename TPreparePixel, typename TRawFillRow, typename TRawInvertRow, typename TRawSetPixel, typename TRawInvertPixel>
-  void genericAbsDrawLine(int X1, int Y1, int X2, int Y2, RGB888 const & color, TPreparePixel preparePixel, TRawFillRow rawFillRow, TRawInvertRow rawInvertRow, TRawSetPixel rawSetPixel, TRawInvertPixel rawInvertPixel)
+  template <typename TPreparePixel, typename TRawFillRow, typename TRawSetPixel>
+  void genericAbsDrawLine(int X1, int Y1, int X2, int Y2, RGB888 const & color, TPreparePixel preparePixel, TRawFillRow rawFillRow, TRawSetPixel rawSetPixel)
   {
     if (paintState().penWidth > 1) {
       absDrawThickLine(X1, Y1, X2, Y2, paintState().penWidth, color);
@@ -1092,10 +1106,7 @@ protected:
         return;
       X1 = iclamp(X1, paintState().absClippingRect.X1, paintState().absClippingRect.X2);
       X2 = iclamp(X2, paintState().absClippingRect.X1, paintState().absClippingRect.X2);
-      if (paintState().paintOptions.NOT)
-        rawInvertRow(Y1, X1, X2);
-      else
-        rawFillRow(Y1, X1, X2, pattern);
+      rawFillRow(Y1, X1, X2, pattern);
     } else if (X1 == X2) {
       // vertical line
       if (X1 < paintState().absClippingRect.X1 || X1 > paintState().absClippingRect.X2)
@@ -1106,13 +1117,8 @@ protected:
         return;
       Y1 = iclamp(Y1, paintState().absClippingRect.Y1, paintState().absClippingRect.Y2);
       Y2 = iclamp(Y2, paintState().absClippingRect.Y1, paintState().absClippingRect.Y2);
-      if (paintState().paintOptions.NOT) {
-        for (int y = Y1; y <= Y2; ++y)
-          rawInvertPixel(X1, y);
-      } else {
-        for (int y = Y1; y <= Y2; ++y)
-          rawSetPixel(X1, y, pattern);
-      }
+      for (int y = Y1; y <= Y2; ++y)
+        rawSetPixel(X1, y, pattern);
     } else {
       // other cases (Bresenham's algorithm)
       // TODO: to optimize
@@ -1134,10 +1140,7 @@ protected:
       int err = (dx > dy ? dx : -dy) / 2;
       while (true) {
         if (paintState().absClippingRect.contains(X1, Y1)) {
-          if (paintState().paintOptions.NOT)
-            rawInvertPixel(X1, Y1);
-          else
-            rawSetPixel(X1, Y1, pattern);
+          rawSetPixel(X1, Y1, pattern);
         }
         if (X1 == X2 && Y1 == Y2)
           break;

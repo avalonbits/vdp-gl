@@ -167,6 +167,7 @@ Sprite::Sprite()
   visible                 = true;
   isStatic                = false;
   allowDraw               = true;
+  paintOptions            = PaintOptions();
 }
 
 
@@ -532,8 +533,9 @@ void IRAM_ATTR BitmappedDisplayController::processPrimitives()
 
 void BitmappedDisplayController::setSprites(Sprite * sprites, int count, int spriteSize)
 {
-  processPrimitives();
-  primitivesExecutionWait();
+  suspendBackgroundPrimitiveExecution();
+  auto updateRect = Rect(0, 0, getViewPortWidth() - 1, getViewPortHeight() - 1);
+  hideSprites(updateRect);
   m_sprites      = sprites;
   m_spriteSize   = spriteSize;
   m_spritesCount = count;
@@ -550,6 +552,9 @@ void BitmappedDisplayController::setSprites(Sprite * sprites, int count, int spr
         sprite->savedBackground = (uint8_t*) realloc(sprite->savedBackground, reqBackBufferSize);
     }
   }
+  resumeBackgroundPrimitiveExecution();
+  Primitive p(PrimitiveCmd::RefreshSprites);
+  addPrimitive(p);
 }
 
 
@@ -601,7 +606,6 @@ void IRAM_ATTR BitmappedDisplayController::hideSprites(Rect & updateRect)
       updateRect = updateRect.merge(Rect(savedX, savedY, savedX + savedWidth - 1, savedY + savedHeight - 1));
       mouseSprite->savedBackgroundWidth = mouseSprite->savedBackgroundHeight = 0;
     }
-
   }
 }
 
@@ -610,6 +614,7 @@ void IRAM_ATTR BitmappedDisplayController::showSprites(Rect & updateRect)
 {
   if (m_spritesHidden) {
     m_spritesHidden = false;
+    auto options = paintState().paintOptions;
 
     // normal sprites
     // save backgrounds and draw sprites
@@ -622,6 +627,7 @@ void IRAM_ATTR BitmappedDisplayController::showSprites(Rect & updateRect)
         Bitmap const * bitmap = sprite->getFrame();
         int bitmapWidth  = bitmap->width;
         int bitmapHeight = bitmap->height;
+        paintState().paintOptions = sprite->paintOptions;
         absDrawBitmap(spriteX, spriteY, bitmap, sprite->savedBackground, true);
         sprite->savedX = spriteX;
         sprite->savedY = spriteY;
@@ -643,6 +649,7 @@ void IRAM_ATTR BitmappedDisplayController::showSprites(Rect & updateRect)
       Bitmap const * bitmap = mouseSprite->getFrame();
       int bitmapWidth  = bitmap->width;
       int bitmapHeight = bitmap->height;
+      paintState().paintOptions = PaintOptions();
       absDrawBitmap(spriteX, spriteY, bitmap, mouseSprite->savedBackground, true);
       mouseSprite->savedX = spriteX;
       mouseSprite->savedY = spriteY;
@@ -651,6 +658,7 @@ void IRAM_ATTR BitmappedDisplayController::showSprites(Rect & updateRect)
       updateRect = updateRect.merge(Rect(spriteX, spriteY, spriteX + bitmapWidth - 1, spriteY + bitmapHeight - 1));
     }
 
+    paintState().paintOptions = options;
   }
 }
 
@@ -899,7 +907,7 @@ void IRAM_ATTR BitmappedDisplayController::fillRect(Rect const & rect, RGB888 co
   hideSprites(updateRect);
 
   for (int y = y1; y <= y2; ++y)
-    rawFillRow(y, x1, x2, color);
+    fillRow(y, x1, x2, color);
 }
 
 
@@ -946,9 +954,9 @@ void IRAM_ATTR BitmappedDisplayController::fillEllipse(int centerX, int centerY,
         int row1 = centerY - y;
         int row2 = centerY + y;
         if (row1 >= clipY1 && row1 <= clipY2)
-          rawFillRow(row1, col1, col2, color);
+          fillRow(row1, col1, col2, color);
         if (y != 0 && row2 >= clipY1 && row2 <= clipY2)
-          rawFillRow(row2, col1, col2, color);
+          fillRow(row2, col1, col2, color);
       }
       if (t - a2 * y <= crit2) {
         x++;
@@ -963,7 +971,7 @@ void IRAM_ATTR BitmappedDisplayController::fillEllipse(int centerX, int centerY,
   }
   // one line horizontal ellipse case
   if (halfHeight == 0 && centerY >= clipY1 && centerY <= clipY2)
-    rawFillRow(centerY, iclamp(centerX - halfWidth, clipX1, clipX2), iclamp(centerX - halfWidth + 2 * halfWidth + 1, clipX1, clipX2), color);
+    fillRow(centerY, iclamp(centerX - halfWidth, clipX1, clipX2), iclamp(centerX - halfWidth + 2 * halfWidth + 1, clipX1, clipX2), color);
 }
 
 
@@ -1105,7 +1113,7 @@ void IRAM_ATTR BitmappedDisplayController::fillPath(Path const & path, RGB888 co
           nodeX[i] = minX;
         if (nodeX[i + 1] > maxX)
           nodeX[i + 1] = maxX;
-        rawFillRow(pixelY, nodeX[i], nodeX[i + 1] - 1, color);
+        fillRow(pixelY, nodeX[i], nodeX[i + 1] - 1, color);
       }
     }
   }

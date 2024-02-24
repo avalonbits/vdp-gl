@@ -151,33 +151,119 @@ void IRAM_ATTR VGAController::VSyncInterrupt(void * arg)
 }
 
 
+std::function<uint8_t(RGB888 const &)> IRAM_ATTR VGAController::getPixelLambda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::XOR:
+      return [&] (RGB888 const & color) { return preparePixel(color) & 63; };
+    default: // PaintMode::Set, et al
+      return [&] (RGB888 const & color) { return preparePixel(color); };
+  }
+}
+
+
+std::function<void(int X, int Y, uint8_t pattern)> IRAM_ATTR VGAController::setPixelLambda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::Set:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) = pattern; };
+    case PaintMode::OR:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) |= pattern; };
+    case PaintMode::ORNOT:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) |= (~pattern) & 63; };
+    case PaintMode::AND:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) &= pattern; };
+    case PaintMode::ANDNOT:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) &= ((~pattern) & 63) | m_HVSync; };
+    case PaintMode::XOR:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) ^= pattern; };
+    case PaintMode::Invert:
+      return [&] (int X, int Y, uint8_t pattern) { VGA_INVERT_PIXEL(X, Y); };
+    default:  // PaintMode::NoOp
+      return [&] (int X, int Y, uint8_t pattern) { return; };
+  }
+}
+
+
+std::function<void(uint8_t * row, int x, uint8_t pattern)> IRAM_ATTR VGAController::setRowPixelLambda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::Set:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) = pattern; };
+    case PaintMode::OR:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) |= pattern; };
+    case PaintMode::ORNOT:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) |= (~pattern & 63); };
+    case PaintMode::AND:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) &= pattern; };
+    case PaintMode::ANDNOT:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) &= (~pattern & 63) | m_HVSync; };
+    case PaintMode::XOR:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) ^= pattern & 63; };
+    case PaintMode::Invert:
+      return [&] (uint8_t * row, int x, uint8_t pattern) { auto px = &VGA_PIXELINROW(row, x); *px = ~(*px ^ VGA_SYNC_MASK); };
+    default:  // PaintMode::NoOp
+      return [&] (uint8_t * row, int x, uint8_t pattern) { return; };
+  
+  }
+}
+
+
+std::function<void(int Y, int X1, int X2, uint8_t pattern)> IRAM_ATTR VGAController::fillRowLambda(PaintMode mode)
+{
+  switch (mode) {
+    case PaintMode::Set:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawFillRow(Y, X1, X2, pattern); };
+    case PaintMode::OR:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawORRow(Y, X1, X2, pattern); };
+    case PaintMode::ORNOT:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawORRow(Y, X1, X2, (~pattern & 63)); };
+    case PaintMode::AND:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawANDRow(Y, X1, X2, pattern); };
+    case PaintMode::ANDNOT:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawANDRow(Y, X1, X2, (~pattern & 63) | m_HVSync); };
+    case PaintMode::XOR:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawXORRow(Y, X1, X2, pattern); };
+    case PaintMode::Invert:
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { rawInvertRow(Y, X1, X2); };
+    default:  // PaintMode::NoOp
+      return [&] (int Y, int X1, int X2, uint8_t pattern) { return; };
+  }
+}
+
+
+
 void IRAM_ATTR VGAController::setPixelAt(PixelDesc const & pixelDesc, Rect & updateRect)
 {
-  genericSetPixelAt(pixelDesc, updateRect,
-                    [&] (RGB888 const & color)          { return preparePixel(color); },
-                    [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) = pattern; }
-                   );
+  auto paintMode = paintState().paintOptions.mode;
+  genericSetPixelAt(pixelDesc, updateRect, getPixelLambda(paintMode), setPixelLambda(paintMode));
 }
+
 
 
 // coordinates are absolute values (not relative to origin)
 // line clipped on current absolute clipping rectangle
 void IRAM_ATTR VGAController::absDrawLine(int X1, int Y1, int X2, int Y2, RGB888 color)
 {
+  auto paintMode = paintState().paintOptions.NOT ? PaintMode::NOT : paintState().paintOptions.mode;
   genericAbsDrawLine(X1, Y1, X2, Y2, color,
-                     [&] (RGB888 const & color)                   { return preparePixel(color); },
-                     [&] (int Y, int X1, int X2, uint8_t pattern) { rawFillRow(Y, X1, X2, pattern); },
-                     [&] (int Y, int X1, int X2)                  { rawInvertRow(Y, X1, X2); },
-                     [&] (int X, int Y, uint8_t pattern)          { VGA_PIXEL(X, Y) = pattern; },
-                     [&] (int X, int Y)                           { VGA_INVERT_PIXEL(X, Y); }
+                     getPixelLambda(paintMode),
+                     fillRowLambda(paintMode),
+                     setPixelLambda(paintMode)
                      );
 }
 
 
 // parameters not checked
-void IRAM_ATTR VGAController::rawFillRow(int y, int x1, int x2, RGB888 color)
+void IRAM_ATTR VGAController::fillRow(int y, int x1, int x2, RGB888 color)
 {
-  rawFillRow(y, x1, x2, preparePixel(color));
+  // This version, passing an RGB888 color, is only used by shape drawing methods,
+  // so we will pick fill method based on paint mode
+  auto paintMode = paintState().paintOptions.mode;
+  auto getPixel = getPixelLambda(paintMode);
+  auto pixel = getPixel(color);
+  auto fill = fillRowLambda(paintMode);
+  fill(y, x1, x2, pixel);
 }
 
 
@@ -199,6 +285,39 @@ void IRAM_ATTR VGAController::rawFillRow(int y, int x1, int x2, uint8_t pattern)
   // fill last unaligned bytes
   for (; x <= x2; ++x) {
     VGA_PIXELINROW(row, x) = pattern;
+  }
+}
+
+
+// parameters not checked
+void IRAM_ATTR VGAController::rawORRow(int y, int x1, int x2, uint8_t pattern)
+{
+  auto row = m_viewPort[y];
+  // naive implementation - just do whole row iteratively
+  for (int x = x1; x <= x2; ++x) {
+    VGA_PIXELINROW(row, x) |= pattern;
+  }
+}
+
+
+// parameters not checked
+void IRAM_ATTR VGAController::rawANDRow(int y, int x1, int x2, uint8_t pattern)
+{
+  auto row = m_viewPort[y];
+  // naive implementation - just do whole row iteratively
+  for (int x = x1; x <= x2; ++x) {
+    VGA_PIXELINROW(row, x) &= pattern;
+  }
+}
+
+
+// parameters not checked
+void IRAM_ATTR VGAController::rawXORRow(int y, int x1, int x2, uint8_t pattern)
+{
+  auto row = m_viewPort[y];
+  // naive implementation - just do whole row iteratively
+  for (int x = x1; x <= x2; ++x) {
+    VGA_PIXELINROW(row, x) ^= pattern;
   }
 }
 
@@ -237,10 +356,8 @@ void IRAM_ATTR VGAController::swapRows(int yA, int yB, int x1, int x2)
 
 void IRAM_ATTR VGAController::drawEllipse(Size const & size, Rect & updateRect)
 {
-  genericDrawEllipse(size, updateRect,
-                     [&] (RGB888 const & color)          { return preparePixel(color); },
-                     [&] (int X, int Y, uint8_t pattern) { VGA_PIXEL(X, Y) = pattern; }
-                    );
+  auto mode = paintState().paintOptions.mode;
+  genericDrawEllipse(size, updateRect, getPixelLambda(mode), setPixelLambda(mode));
 }
 
 
@@ -259,9 +376,9 @@ void IRAM_ATTR VGAController::clear(Rect & updateRect)
 void IRAM_ATTR VGAController::VScroll(int scroll, Rect & updateRect)
 {
   genericVScroll(scroll, updateRect,
-                 [&] (int yA, int yB, int x1, int x2)        { swapRows(yA, yB, x1, x2); },              // swapRowsCopying
-                 [&] (int yA, int yB)                        { tswap(m_viewPort[yA], m_viewPort[yB]); }, // swapRowsPointers
-                 [&] (int y, int x1, int x2, RGB888 pattern) { rawFillRow(y, x1, x2, pattern); }         // rawFillRow
+                 [&] (int yA, int yB, int x1, int x2)      { swapRows(yA, yB, x1, x2); },              // swapRowsCopying
+                 [&] (int yA, int yB)                      { tswap(m_viewPort[yA], m_viewPort[yB]); }, // swapRowsPointers
+                 [&] (int y, int x1, int x2, RGB888 color) { rawFillRow(y, x1, x2, preparePixel(color)); }         // rawFillRow
                 );
 
   if (scroll != 0) {
@@ -443,10 +560,13 @@ void IRAM_ATTR VGAController::HScroll(int scroll, Rect & updateRect)
 
 void IRAM_ATTR VGAController::drawGlyph(Glyph const & glyph, GlyphOptions glyphOptions, RGB888 penColor, RGB888 brushColor, Rect & updateRect)
 {
+  auto mode = paintState().paintOptions.mode;
+  auto getPixel = getPixelLambda(mode);
+  auto setRowPixel = setRowPixelLambda(mode);
   genericDrawGlyph(glyph, glyphOptions, penColor, brushColor, updateRect,
-                   [&] (RGB888 const & color) { return preparePixel(color); },
-                   [&] (int y)                { return (uint8_t*) m_viewPort[y]; },
-                   [&] (uint8_t * row, int x, uint8_t pattern) { VGA_PIXELINROW(row, x) = pattern; }
+                   getPixel,
+                   [&] (int y) { return (uint8_t*) m_viewPort[y]; },
+                   setRowPixel
                   );
 }
 
@@ -522,39 +642,70 @@ void VGAController::writeScreen(Rect const & rect, RGB222 * srcBuf)
 void IRAM_ATTR VGAController::rawDrawBitmap_Native(int destX, int destY, Bitmap const * bitmap, int X1, int Y1, int XCount, int YCount)
 {
   genericRawDrawBitmap_Native(destX, destY, (uint8_t*) bitmap->data, bitmap->width, X1, Y1, XCount, YCount,
-                              [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },         // rawGetRow
-                              [&] (uint8_t * row, int x, uint8_t src) { VGA_PIXELINROW(row, x) = m_HVSync | src; }  // rawSetPixelInRow
+                              [&] (int y) { return (uint8_t*) m_viewPort[y]; },   // rawGetRow
+                              [&] (uint8_t * row, int x, uint8_t src) { VGA_PIXELINROW(row, x) = src; }  // rawSetPixelInRow
                              );
 }
 
 
 void IRAM_ATTR VGAController::rawDrawBitmap_Mask(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount)
 {
-  auto foregroundPattern = preparePixel(bitmap->foregroundColor);
+  auto paintMode = paintState().paintOptions.mode;
+  auto setRowPixel = setRowPixelLambda(paintMode);
+  auto getPixel = getPixelLambda(paintMode);
+  auto pattern = getPixel(paintState().paintOptions.swapFGBG ? paintState().penColor : bitmap->foregroundColor);
   genericRawDrawBitmap_Mask(destX, destY, bitmap, (uint8_t*)saveBackground, X1, Y1, XCount, YCount,
-                            [&] (int y)                { return (uint8_t*) m_viewPort[y]; },             // rawGetRow
-                            [&] (uint8_t * row, int x) { return VGA_PIXELINROW(row, x); },               // rawGetPixelInRow
-                            [&] (uint8_t * row, int x) { VGA_PIXELINROW(row, x) = foregroundPattern; }   // rawSetPixelInRow
+                            [&] (int y)                { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
+                            [&] (uint8_t * row, int x) { return VGA_PIXELINROW(row, x); },    // rawGetPixelInRow
+                            [&] (uint8_t * row, int x) { setRowPixel(row, x, pattern); }      // rawSetPixelInRow
                            );
 }
 
 
 void IRAM_ATTR VGAController::rawDrawBitmap_RGBA2222(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount)
 {
+  auto paintMode = paintState().paintOptions.mode;
+  auto setRowPixel = setRowPixelLambda(paintMode);
+
+  if (paintState().paintOptions.swapFGBG) {
+    // used for bitmap plots to indicate drawing with BG color instead of bitmap color
+    auto bg = preparePixel(paintState().penColor);
+    genericRawDrawBitmap_RGBA2222(destX, destY, bitmap, (uint8_t*)saveBackground, X1, Y1, XCount, YCount,
+                                  [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
+                                  [&] (uint8_t * row, int x)              { return VGA_PIXELINROW(row, x); },    // rawGetPixelInRow
+                                  [&] (uint8_t * row, int x, uint8_t src) { setRowPixel(row, x, bg); }           // rawSetPixelInRow
+                                );
+    return;
+  }
+
   genericRawDrawBitmap_RGBA2222(destX, destY, bitmap, (uint8_t*)saveBackground, X1, Y1, XCount, YCount,
-                                [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },                   // rawGetRow
-                                [&] (uint8_t * row, int x)              { return VGA_PIXELINROW(row, x); },                     // rawGetPixelInRow
-                                [&] (uint8_t * row, int x, uint8_t src) { VGA_PIXELINROW(row, x) = m_HVSync | (src & 0x3f); }   // rawSetPixelInRow
+                                [&] (int y)                             { return (uint8_t*) m_viewPort[y]; },              // rawGetRow
+                                [&] (uint8_t * row, int x)              { return VGA_PIXELINROW(row, x); },                // rawGetPixelInRow
+                                [&] (uint8_t * row, int x, uint8_t src) { setRowPixel(row, x, m_HVSync | (src & 0x3f)); }  // rawSetPixelInRow
                                );
 }
 
 
 void IRAM_ATTR VGAController::rawDrawBitmap_RGBA8888(int destX, int destY, Bitmap const * bitmap, void * saveBackground, int X1, int Y1, int XCount, int YCount)
 {
+  auto paintMode = paintState().paintOptions.mode;
+  auto setRowPixel = setRowPixelLambda(paintMode);
+
+  if (paintState().paintOptions.swapFGBG) {
+    // used for bitmap plots to indicate drawing with BG color instead of bitmap color
+    auto bg = preparePixel(paintState().penColor);
+    genericRawDrawBitmap_RGBA8888(destX, destY, bitmap, (uint8_t*)saveBackground, X1, Y1, XCount, YCount,
+                                  [&] (int y)                                      { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
+                                  [&] (uint8_t * row, int x)                       { return VGA_PIXELINROW(row, x); },    // rawGetPixelInRow
+                                  [&] (uint8_t * row, int x, RGBA8888 const & src) { setRowPixel(row, x, bg); }           // rawSetPixelInRow
+                                  );
+    return;
+  }
+
   genericRawDrawBitmap_RGBA8888(destX, destY, bitmap, (uint8_t*)saveBackground, X1, Y1, XCount, YCount,
                                  [&] (int y)                                      { return (uint8_t*) m_viewPort[y]; },   // rawGetRow
                                  [&] (uint8_t * row, int x)                       { return VGA_PIXELINROW(row, x); },     // rawGetPixelInRow
-                                 [&] (uint8_t * row, int x, RGBA8888 const & src) { VGA_PIXELINROW(row, x) = m_HVSync | (src.R >> 6) | (src.G >> 6 << 2) | (src.B >> 6 << 4); }   // rawSetPixelInRow
+                                 [&] (uint8_t * row, int x, RGBA8888 const & src) { setRowPixel(row, x, m_HVSync | (src.R >> 6) | (src.G >> 6 << 2) | (src.B >> 6 << 4)); }   // rawSetPixelInRow
                                 );
 }
 
@@ -563,7 +714,7 @@ void IRAM_ATTR VGAController::rawCopyToBitmap(int srcX, int srcY, int width, voi
 {
   genericRawCopyToBitmap(srcX, srcY, width, (uint8_t*)saveBuffer, X1, Y1, XCount, YCount,
                         [&] (int y)                { return (uint8_t*) m_viewPort[y]; },  // rawGetRow
-                        [&] (uint8_t * row, int x) { return VGA_PIXELINROW(row, x); }     // rawGetPixelInRow
+                        [&] (uint8_t * row, int x) { return 0xC0 | VGA_PIXELINROW(row, x); }     // rawGetPixelInRow
                       );
 }
 
