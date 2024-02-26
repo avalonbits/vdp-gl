@@ -318,6 +318,50 @@ public:
   void setLineEnds(LineEnds value);
 
   /**
+   * @brief Sets line pattern
+   * 
+   * @param value Line pattern.
+   * 
+   * Example:
+   * 
+   *    Canvas.setLinePattern(pattern)
+  */
+  void setLinePattern(LinePattern & value);
+
+  /**
+   * @brief Sets line pattern length
+   * 
+   * @param value Line pattern length.
+   * 
+   * Example:
+   * 
+   *   Canvas.setLinePatternLength(length)
+  */
+  void setLinePatternLength(uint8_t value);
+
+  /**
+   * @brief Sets offset position within the line pattern
+   * 
+   * @param value offset position.
+   * 
+   * Example:
+   * 
+   *    Canvas.setLinePatternOffset(position)
+  */
+  void setLinePatternOffset(uint8_t value);
+
+  /**
+   * @brief Sets line drawing options
+   * 
+   * @param value Line drawing options.
+   * 
+   * Example:
+   * 
+   *    Canvas.setLineOptions(LineOptions().Antialias(true).Smooth(true));
+   */
+  void setLineOptions(LineOptions value);
+
+  /**
    * @brief Fills a single pixel with the pen color.
    *
    * @param X Horizontal pixel position.

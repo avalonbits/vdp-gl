@@ -194,6 +194,22 @@ enum PrimitiveCmd : uint8_t {
   // Set line ends
   // params: lineEnds
   SetLineEnds,
+
+  // Set line pattern
+  // params: linePattern
+  SetLinePattern,
+
+  // Set line pattern length
+  // params: ivalue
+  SetLinePatternLength,
+
+  // Set line pattern offset
+  // params: ivalue
+  SetLinePatternOffset,
+
+  // Set line options
+  // params: lineOptions
+  SetLineOptions,
 };
 
 
@@ -623,6 +639,25 @@ struct PixelDesc {
 } __attribute__ ((packed));
 
 
+struct LinePattern {
+  uint8_t pattern[8] = {0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
+  uint8_t offset = 0;  // bit offset in pattern, automatically updated whilst drawing a line
+
+  void setPattern(const uint8_t newPattern[8]) {
+    for (int i = 0; i < 8; ++i) {
+      pattern[i] = newPattern[i];
+    }
+  }
+} __attribute__ ((packed));
+
+
+struct LineOptions {
+  bool usePattern = false;
+  bool omitFirst = false;
+  bool omitLast = false;
+} __attribute__ ((packed));
+
+
 struct Primitive {
   PrimitiveCmd cmd;
   union {
@@ -639,6 +674,8 @@ struct Primitive {
     Path                   path;
     PixelDesc              pixelDesc;
     LineEnds               lineEnds;
+    LinePattern            linePattern;
+    LineOptions            lineOptions;
     TaskHandle_t           notifyTask;
   } __attribute__ ((packed));
 
@@ -651,7 +688,7 @@ struct Primitive {
 struct PaintState {
   RGB888       penColor;
   RGB888       brushColor;
-  Point        position;        // value already traslated to "origin"
+  Point        position;        // value already translated to "origin"
   GlyphOptions glyphOptions;
   PaintOptions paintOptions;
   Rect         scrollingRegion;
@@ -660,6 +697,9 @@ struct PaintState {
   Rect         absClippingRect; // actual absolute clipping rectangle (calculated when setting "origin" or "clippingRect")
   int16_t      penWidth;
   LineEnds     lineEnds;
+  LineOptions  lineOptions;
+  LinePattern  linePattern;
+  int8_t       linePatternLength;
 };
 
 
@@ -1091,32 +1131,59 @@ protected:
   template <typename TPreparePixel, typename TRawFillRow, typename TRawSetPixel>
   void genericAbsDrawLine(int X1, int Y1, int X2, int Y2, RGB888 const & color, TPreparePixel preparePixel, TRawFillRow rawFillRow, TRawSetPixel rawSetPixel)
   {
-    if (paintState().penWidth > 1) {
-      absDrawThickLine(X1, Y1, X2, Y2, paintState().penWidth, color);
+    auto & pState = paintState();
+    if (pState.penWidth > 1) {
+      absDrawThickLine(X1, Y1, X2, Y2, pState.penWidth, color);
       return;
     }
+    auto & lineOptions = pState.lineOptions;
+    bool dottedLine = lineOptions.usePattern;
     auto pattern = preparePixel(color);
-    if (Y1 == Y2) {
+    if (!dottedLine && (Y1 == Y2)) {
       // horizontal line
-      if (Y1 < paintState().absClippingRect.Y1 || Y1 > paintState().absClippingRect.Y2)
+      if (Y1 < pState.absClippingRect.Y1 || Y1 > pState.absClippingRect.Y2)
         return;
+      if (lineOptions.omitFirst) {
+        if (X1 < X2)
+          X1 += 1;
+        else
+          X1 -= 1;
+      }
+      if (lineOptions.omitLast) {
+        if (X1 < X2)
+          X2 -= 1;
+        else
+          X2 += 1;
+      }
       if (X1 > X2)
         tswap(X1, X2);
-      if (X1 > paintState().absClippingRect.X2 || X2 < paintState().absClippingRect.X1)
+      if (X1 > pState.absClippingRect.X2 || X2 < pState.absClippingRect.X1)
         return;
-      X1 = iclamp(X1, paintState().absClippingRect.X1, paintState().absClippingRect.X2);
-      X2 = iclamp(X2, paintState().absClippingRect.X1, paintState().absClippingRect.X2);
+      X1 = iclamp(X1, pState.absClippingRect.X1, pState.absClippingRect.X2);
+      X2 = iclamp(X2, pState.absClippingRect.X1, pState.absClippingRect.X2);
       rawFillRow(Y1, X1, X2, pattern);
-    } else if (X1 == X2) {
+    } else if (!dottedLine && (X1 == X2)) {
       // vertical line
-      if (X1 < paintState().absClippingRect.X1 || X1 > paintState().absClippingRect.X2)
+      if (X1 < pState.absClippingRect.X1 || X1 > pState.absClippingRect.X2)
         return;
+      if (lineOptions.omitFirst) {
+        if (Y1 < Y2)
+          Y1 += 1;
+        else
+          Y1 -= 1;
+      }
+      if (lineOptions.omitLast) {
+        if (Y1 < Y2)
+          Y2 -= 1;
+        else
+          Y2 += 1;
+      }
       if (Y1 > Y2)
         tswap(Y1, Y2);
-      if (Y1 > paintState().absClippingRect.Y2 || Y2 < paintState().absClippingRect.Y1)
+      if (Y1 > pState.absClippingRect.Y2 || Y2 < pState.absClippingRect.Y1)
         return;
-      Y1 = iclamp(Y1, paintState().absClippingRect.Y1, paintState().absClippingRect.Y2);
-      Y2 = iclamp(Y2, paintState().absClippingRect.Y1, paintState().absClippingRect.Y2);
+      Y1 = iclamp(Y1, pState.absClippingRect.Y1, pState.absClippingRect.Y2);
+      Y2 = iclamp(Y2, pState.absClippingRect.Y1, pState.absClippingRect.Y2);
       for (int y = Y1; y <= Y2; ++y)
         rawSetPixel(X1, y, pattern);
     } else {
@@ -1131,18 +1198,34 @@ protected:
       //               https://github.com/ktfh/ClippedLine/blob/master/clip.hpp
       // For now Sutherland-Cohen algorithm is only used to check the line is actually visible,
       // then test for every point inside the main Bresenham's loop.
-      if (!clipLine(X1, Y1, X2, Y2, paintState().absClippingRect, true))  // true = do not change line coordinates!
+      if (!clipLine(X1, Y1, X2, Y2, pState.absClippingRect, true))  // true = do not change line coordinates!
         return;
+      auto & linePattern = pState.linePattern;
+      auto linePatternLength = pState.linePatternLength;
       const int dx = abs(X2 - X1);
       const int dy = abs(Y2 - Y1);
       const int sx = X1 < X2 ? 1 : -1;
       const int sy = Y1 < Y2 ? 1 : -1;
       int err = (dx > dy ? dx : -dy) / 2;
+      bool omittingFirst = lineOptions.omitFirst;
+      bool omittingLast = lineOptions.omitLast;
+      bool drawPixel = !omittingFirst;
       while (true) {
-        if (paintState().absClippingRect.contains(X1, Y1)) {
+        bool ending = X1 == X2 && Y1 == Y2;
+        if (dottedLine) {
+          if (!omittingFirst && !(ending && omittingLast)) {
+            drawPixel = getBit(linePattern.pattern, linePattern.offset);
+            linePattern.offset = (linePattern.offset + 1) % linePatternLength;
+          } else {
+            drawPixel = false;
+          }
+        }
+        if (drawPixel && pState.absClippingRect.contains(X1, Y1)) {
           rawSetPixel(X1, Y1, pattern);
         }
-        if (X1 == X2 && Y1 == Y2)
+        if (omittingFirst)
+          omittingFirst = false;
+        if (ending)
           break;
         int e2 = err;
         if (e2 > -dx) {

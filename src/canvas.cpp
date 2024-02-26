@@ -237,6 +237,42 @@ void Canvas::setLineEnds(LineEnds value)
 }
 
 
+void Canvas::setLinePattern(LinePattern & value)
+{
+  Primitive p;
+  p.cmd = PrimitiveCmd::SetLinePattern;
+  p.linePattern = value;
+  m_displayController->addPrimitive(p);
+}
+
+
+void Canvas::setLinePatternLength(uint8_t value)
+{
+  Primitive p;
+  p.cmd = PrimitiveCmd::SetLinePatternLength;
+  p.ivalue = value;
+  m_displayController->addPrimitive(p);
+}
+
+
+void Canvas::setLinePatternOffset(uint8_t value)
+{
+  Primitive p;
+  p.cmd = PrimitiveCmd::SetLinePatternOffset;
+  p.ivalue = value;
+  m_displayController->addPrimitive(p);
+}
+
+
+void Canvas::setLineOptions(LineOptions options)
+{
+  Primitive p;
+  p.cmd = PrimitiveCmd::SetLineOptions;
+  p.lineOptions = options;
+  m_displayController->addPrimitive(p);
+}
+
+
 void Canvas::setBrushColor(RGB888 const & color)
 {
   Primitive p;
