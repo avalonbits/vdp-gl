@@ -36,6 +36,7 @@
 
 
 
+#include <functional>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -112,8 +113,12 @@ enum PrimitiveCmd : uint8_t {
   DrawEllipse,
 
   // Draw an arc of a circle, current position is the center, using current pen color
-  // params: startPoint, endPoint
+  // params: rect (providing a startPoint and endPoint)
   DrawArc,
+
+  // Draw a filled segment from a circle, current position is the center, using current brush color
+  // params: rect (providing a startPoint and endPoint)
+  FillSegment,
 
   // Fill viewport with brush color
   // params: none
@@ -988,6 +993,8 @@ protected:
 
   virtual void drawArc(Rect const & rect, Rect & updateRect) = 0;
 
+  virtual void fillSegment(Rect const & rect, Rect & updateRect) = 0;
+
   virtual void clear(Rect & updateRect) = 0;
 
   virtual void VScroll(int scroll, Rect & updateRect) = 0;
@@ -1336,7 +1343,7 @@ protected:
     LineInfo startInfo = LineInfo(centerX, centerY, rect.X1, rect.Y1);
     LineInfo endInfo = LineInfo(centerX, centerY, rect.X2, rect.Y2);
 
-    int radius = startInfo.length();
+    const int radius = startInfo.length();
     int r = radius;
     QuadrantInfo quadrants[4] = {
       QuadrantInfo(0, startInfo, endInfo),
@@ -1377,6 +1384,127 @@ protected:
         err += ++x*2+1;
       }/* e_xy+e_x > 0 or no 2nd y-step */
     } while (x < 0);
+  }
+
+
+  // Segment drawn using modified Alois Zingl's algorith, which is a modified Bresenham's algorithm
+  template <typename TPreparePixel, typename TRawFillRow>
+  void genericFillSegment(Rect const & rect, Rect & updateRect, TPreparePixel preparePixel, TRawFillRow rawFillRow)
+  {
+    auto pattern = preparePixel(getActualBrushColor());
+
+    const int clipX1 = paintState().absClippingRect.X1;
+    const int clipY1 = paintState().absClippingRect.Y1;
+    const int clipX2 = paintState().absClippingRect.X2;
+    const int clipY2 = paintState().absClippingRect.Y2;
+
+    const int centerX = paintState().position.X;
+    const int centerY = paintState().position.Y;
+
+    LineInfo startInfo = LineInfo(centerX, centerY, rect.X1, rect.Y1);
+    LineInfo endInfo = LineInfo(centerX, centerY, rect.X2, rect.Y2);
+    const int radius = startInfo.length();
+    LineInfo endLine = endInfo.walkDistance(radius);
+
+    LineInfo chordDeltaInfo = LineInfo(startInfo.deltaX, startInfo.deltaY, endLine.deltaX, endLine.deltaY, 0, 0);
+    chordDeltaInfo.sortByY();
+    // get chord mid-point
+    const int chordMidX = (startInfo.deltaX + endLine.deltaX) / 2;
+    const int chordMidY = (startInfo.deltaY + endLine.deltaY) / 2;
+    const int chordQuadrant = getCircleQuadrant(chordMidX, chordMidY);
+
+    QuadrantInfo quadrants[4] = {
+      QuadrantInfo(0, startInfo, endLine, chordQuadrant),
+      QuadrantInfo(1, startInfo, endLine, chordQuadrant),
+      QuadrantInfo(2, startInfo, endLine, chordQuadrant),
+      QuadrantInfo(3, startInfo, endLine, chordQuadrant)
+    };
+
+    // Simplistic updateRect, using whole bounding box of circle
+    updateRect = updateRect.merge(Rect(centerX - radius, centerY - radius, centerX + radius, centerY + radius));
+    hideSprites(updateRect);
+
+    int r = radius;
+    int x = 0;
+    int y = -r;
+    int err = 2 - 2*r;
+    int minX = 999999;
+    int maxX = -999999;
+    chordDeltaInfo.newRowCheck(y);
+
+    std::function<void()> finishRow = [&minX, &maxX, &y, &err, &clipX1, &clipX2, &clipY1, &clipY2, &chordDeltaInfo, &centerX, &centerY, &pattern, &rawFillRow] () {
+      int row = centerY + y;
+      if (minX <= maxX && row >= clipY1 && row <= clipY2) {
+        if (chordDeltaInfo.hasPixels) {
+          int X1 = iclamp(centerX + imin(minX, chordDeltaInfo.minX), clipX1, clipX2);
+          int X2 = iclamp(centerX + imax(maxX, chordDeltaInfo.maxX), clipX1, clipX2);
+          rawFillRow(row, X1, X2, pattern);
+        } else {
+          int X1 = iclamp(centerX + minX, clipX1, clipX2);
+          int X2 = iclamp(centerX + maxX, clipX1, clipX2);
+          rawFillRow(row, X1, X2, pattern);
+        }
+      }
+      err += ++y*2+1;
+      minX = 999999;
+      maxX = -999999;
+      chordDeltaInfo.newRowCheck(y);
+    };
+
+    auto minMaxQuadrant = [&startInfo, &endInfo, &minX, &maxX] (QuadrantInfo & quadrant, int x, int y) {
+      if (quadrantContainsArcPixel(quadrant, startInfo, endInfo, x, y)) {
+        if (x < minX)
+          minX = x;
+        if (x > maxX)
+          maxX = x;
+      }
+    };
+
+    // we can skip showing top half of circle if segment is entirely in the bottom half
+    if (quadrants[0].showNothing && quadrants[1].showNothing) {
+      // Skip top half
+      y = 0;
+    } else {
+      do {
+        minMaxQuadrant(quadrants[0], x, y);
+        minMaxQuadrant(quadrants[1], -x, y);
+        chordDeltaInfo.walkToY(y);
+
+        r = err;
+        if (r <= x) {
+          x += 1;
+          err += x*2+1;           /* e_xy+e_x < 0 */
+        }
+        if (r > y || err > x) {
+          finishRow();
+        }/* e_xy+e_y > 0 or no 2nd y-step */
+      } while (y < 0);
+    }
+
+    // draw lower half - this time walking from x = -r to x = 0
+    if (quadrants[2].showNothing && quadrants[3].showNothing) {
+      // skip the bottom
+      y = radius;
+    } else {
+      r = radius;
+      x = -radius;
+      y = 0;
+      err = 2 - 2*r; /* II. Quadrant */ 
+      do {
+        minMaxQuadrant(quadrants[2], x, y);
+        minMaxQuadrant(quadrants[3], -x, y);
+        chordDeltaInfo.walkToY(y);
+
+        r = err;
+        if (r <= y) {
+          finishRow();
+        }
+        if (r > x || err > y) {
+          err += ++x*2+1;
+        }/* e_xy+e_x > 0 or no 2nd y-step */
+      } while (x < 0);
+    }
+    finishRow();
   }
 
 

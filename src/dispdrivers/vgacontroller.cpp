@@ -368,6 +368,13 @@ void IRAM_ATTR VGAController::drawArc(Rect const & rect, Rect & updateRect)
 }
 
 
+void IRAM_ATTR VGAController::fillSegment(Rect const & rect, Rect & updateRect)
+{
+  auto mode = paintState().paintOptions.mode;
+  genericFillSegment(rect, updateRect, getPixelLambda(mode), fillRowLambda(mode));
+}
+
+
 void IRAM_ATTR VGAController::clear(Rect & updateRect)
 {
   hideSprites(updateRect);

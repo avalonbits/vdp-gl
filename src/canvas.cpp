@@ -389,6 +389,20 @@ void Canvas::drawArc(int X, int Y, int X1, int Y1, int X2, int Y2)
 }
 
 
+void Canvas::fillSegment(int X, int Y, int X1, int Y1, int X2, int Y2)
+{
+  moveTo(X, Y);
+  Primitive p;
+  p.cmd  = PrimitiveCmd::FillSegment;
+  // Use a Rect as a convenience to pass 2 points
+  // NB arc is always drawn anti-clockwise, with X1,Y1 as the start point
+  // and X2,Y2 as the end point, which is used to calculate the angle
+  // (i.e. the end point does not have to lie on circumference)
+  p.rect = Rect(X1, Y1, X2, Y2);
+  m_displayController->addPrimitive(p);
+}
+
+
 void Canvas::drawGlyph(int X, int Y, int width, int height, uint8_t const * data, int index)
 {
   Primitive p;

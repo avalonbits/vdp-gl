@@ -543,6 +543,20 @@ public:
   void drawArc(int X, int Y, int X1, int Y1, int X2, int Y2);
 
   /**
+   * @brief Draws a filled segment of a circle specifying center, start and endpoints, using current brush color.
+   *        The circle arc is drawn anticlockwise.
+   *        The endpoint is used to work out the angle to the end point of the arc, rather than being on the arc itself.
+   * 
+   * @param X Horizontal coordinate of the circle center.
+   * @param Y Vertical coordinate of the circle center.
+   * @param X1 Horizontal coordinate of the start point.
+   * @param Y1 Vertical coordinate of the start point.
+   * @param X2 Horizontal coordinate of the end point.
+   * @param Y2 Vertical coordinate of the end point.
+  */
+  void fillSegment(int X, int Y, int X1, int Y1, int X2, int Y2);
+
+  /**
    * @brief Fills an ellipse specifying center and size, using current brush color.
    *
    * @param X Horizontal coordinate of the ellipse center.

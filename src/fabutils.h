@@ -327,8 +327,6 @@ struct LineInfo {
   void reset() {
     x = X1;
     y = Y1;
-    minX = X1;
-    maxX = X1;
     deltaX = X2 - X1;
     deltaY = Y2 - Y1;
     absDeltaX = deltaX < 0 ? -deltaX : deltaX;
@@ -353,12 +351,12 @@ struct LineInfo {
     if (Y1 > Y2) {
       tswap(X1, X2);
       tswap(Y1, Y2);
-      reset();
     }
+    reset();
   }
 
   /* Walk a distance using Bresenham's algorithm, and return a new line */
-  LineInfo * walkDistance(int16_t distance) {
+  LineInfo walkDistance(int16_t distance) {
     int32_t dSquared = distance * distance;
     auto dy = -absDeltaY;
     auto x = 0;
@@ -376,13 +374,13 @@ struct LineInfo {
         y += sy;
       }
     }
-    return new LineInfo(X1, Y1, X1 + x, Y1 + y, CX, CY);
+    return LineInfo(X1, Y1, X1 + x, Y1 + y, CX, CY);
   }
 
   void walkToY(int16_t newY) {
     // walks to specific y value - must be used in association with newRowCheck and sortByY
     // can only be used for incremetal y values, as this assumes we're walking downwards
-    if (sx < 0) return;
+    if (sy < 0) return;
     if (hasPixels && y <= newY) {
       minX = imin(minX, x);
       maxX = imax(maxX, x);
