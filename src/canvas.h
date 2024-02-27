@@ -531,6 +531,18 @@ public:
   void drawEllipse(int X, int Y, int width, int height);
 
   /**
+   * @brief Draws an anticlockwise arc of a circle specifying center, start and endpoints, using current pen color.
+   * 
+   * @param X Horizontal coordinate of the circle center.
+   * @param Y Vertical coordinate of the circle center.
+   * @param X1 Horizontal coordinate of the start point.
+   * @param Y1 Vertical coordinate of the start point.
+   * @param X2 Horizontal coordinate of the end point.
+   * @param Y2 Vertical coordinate of the end point.
+  */
+  void drawArc(int X, int Y, int X1, int Y1, int X2, int Y2);
+
+  /**
    * @brief Fills an ellipse specifying center and size, using current brush color.
    *
    * @param X Horizontal coordinate of the ellipse center.

@@ -136,6 +136,9 @@ private:
   void drawEllipse(Size const & size, Rect & updateRect);
 
   // abstract method of BitmappedDisplayController
+  void drawArc(Rect const & rect, Rect & updateRect);
+
+  // abstract method of BitmappedDisplayController
   void clear(Rect & updateRect);
 
   // abstract method of BitmappedDisplayController

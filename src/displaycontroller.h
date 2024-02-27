@@ -111,6 +111,10 @@ enum PrimitiveCmd : uint8_t {
   // params: size
   DrawEllipse,
 
+  // Draw an arc of a circle, current position is the center, using current pen color
+  // params: startPoint, endPoint
+  DrawArc,
+
   // Fill viewport with brush color
   // params: none
   Clear,
@@ -982,6 +986,8 @@ protected:
 
   virtual void drawEllipse(Size const & size, Rect & updateRect) = 0;
 
+  virtual void drawArc(Rect const & rect, Rect & updateRect) = 0;
+
   virtual void clear(Rect & updateRect) = 0;
 
   virtual void VScroll(int scroll, Rect & updateRect) = 0;
@@ -1310,6 +1316,67 @@ protected:
         t += dyt;
       }
     }
+  }
+
+
+  // Arc drawn using modified Alois Zingl's algorith, which is a modified Bresenham's algorithm
+  template <typename TPreparePixel, typename TRawSetPixel>
+  void genericDrawArc(Rect const & rect, Rect & updateRect, TPreparePixel preparePixel, TRawSetPixel rawSetPixel)
+  {
+    auto pattern = preparePixel(getActualPenColor());
+
+    const int clipX1 = paintState().absClippingRect.X1;
+    const int clipY1 = paintState().absClippingRect.Y1;
+    const int clipX2 = paintState().absClippingRect.X2;
+    const int clipY2 = paintState().absClippingRect.Y2;
+
+    const int centerX = paintState().position.X;
+    const int centerY = paintState().position.Y;
+
+    LineInfo startInfo = LineInfo(centerX, centerY, rect.X1, rect.Y1);
+    LineInfo endInfo = LineInfo(centerX, centerY, rect.X2, rect.Y2);
+
+    int radius = startInfo.length();
+    int r = radius;
+    QuadrantInfo quadrants[4] = {
+      QuadrantInfo(0, startInfo, endInfo),
+      QuadrantInfo(1, startInfo, endInfo),
+      QuadrantInfo(2, startInfo, endInfo),
+      QuadrantInfo(3, startInfo, endInfo)
+    };
+
+    // Simplistic updateRect, using whole bounding box of circle
+    updateRect = updateRect.merge(Rect(centerX - radius, centerY - radius, centerX + radius, centerY + radius));
+    hideSprites(updateRect);
+
+    int x = -r;
+    int y = 0;
+    int err = 2 - 2 * r;
+    do {
+      if (quadrantContainsArcPixel(quadrants[0], startInfo, endInfo, y, x)) {
+        if (centerX + y >= clipX1 && centerX + y <= clipX2 && centerY + x >= clipY1 && centerY + x <= clipY2)
+          rawSetPixel(centerX + y, centerY + x, pattern);
+      }
+      if (quadrantContainsArcPixel(quadrants[1], startInfo, endInfo, x, -y)) {
+        if (centerX + x >= clipX1 && centerX + x <= clipX2 && centerY - y >= clipY1 && centerY - y <= clipY2)
+          rawSetPixel(centerX + x, centerY - y, pattern);
+      }
+      if (quadrantContainsArcPixel(quadrants[2], startInfo, endInfo, -y, -x)) {
+        if (centerX - y >= clipX1 && centerX - y <= clipX2 && centerY - x >= clipY1 && centerY - x <= clipY2)
+          rawSetPixel(centerX - y, centerY - x, pattern);
+      }
+      if (quadrantContainsArcPixel(quadrants[3], startInfo, endInfo, -x, y)) {
+        if (centerX - x >= clipX1 && centerX - x <= clipX2 && centerY + y >= clipY1 && centerY + y <= clipY2)
+          rawSetPixel(centerX - x, centerY + y, pattern);
+      }
+      r = err;
+      if (r <= y) {
+        err += ++y*2+1;           /* e_xy+e_y < 0 */
+      }
+      if (r > x || err > y) {
+        err += ++x*2+1;
+      }/* e_xy+e_x > 0 or no 2nd y-step */
+    } while (x < 0);
   }
 
 

@@ -389,6 +389,13 @@ void VGA4Controller::drawEllipse(Size const & size, Rect & updateRect)
 }
 
 
+void VGA4Controller::drawArc(Rect const & rect, Rect & updateRect)
+{
+  auto mode = paintState().paintOptions.mode;
+  genericDrawArc(rect, updateRect, getPixelLambda(mode), setPixelLambda(mode));
+}
+
+
 void VGA4Controller::clear(Rect & updateRect)
 {
   hideSprites(updateRect);

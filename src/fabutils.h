@@ -282,6 +282,188 @@ struct Rect {
 } __attribute__ ((packed));
 
 
+/**
+ * @brief Works out which quadrant a relative point is in, from a 0, 0 center.
+ * Quadrants are numbered 0-3, top right to bottom right, anticlockwise.
+ */
+uint8_t getCircleQuadrant(int x, int y);
+
+
+/**
+ * @brief Represents a walkable line, with integer coordinates.
+ *
+ * Uses Bresenham's algorithm to calculate the points of the line.
+ * Used by arc, sector and segment drawing functions.
+ * Includes tracking for minimum and maximum X coordinates.
+ */
+struct LineInfo {
+  int16_t X1;         /**< Horizontal start coordinate */
+  int16_t Y1;         /**< Vertical start coordinate */
+  int16_t X2;         /**< Horizontal end coordinate */
+  int16_t Y2;         /**< Vertical end coordinate */
+  int16_t CX;         /**< Center horizontal coordinate (for quadrant identification) */
+  int16_t CY;         /**< Center vertical coordinate (for quadrant identification) */
+  int16_t minX;       /**< Minimum horizontal coordinate for current line */
+  int16_t maxX;       /**< Maximum horizontal coordinate for current line */
+  int16_t x;          /**< Current horizontal coordinate */
+  int16_t y;          /**< Current vertical coordinate */
+  int16_t deltaX;     /**< Horizontal distance */
+  int16_t deltaY;     /**< Vertical distance */
+  int16_t absDeltaX;  /**< Absolute horizontal distance */
+  int16_t absDeltaY;  /**< Absolute vertical distance */
+  int16_t sx;         /**< Horizontal step */
+  int16_t sy;         /**< Vertical step */
+  int16_t error;      /**< Base Bresenham Error factor */
+  int16_t err;        /**< Working error value */
+  uint8_t quadrant;   /**< Quadrant of line (0..3) (top right to bottom right, anticlockwise) */
+  bool    hasPixels;  /**< True when currently checked line has pixels */
+
+  LineInfo() : X1(0), Y1(0), X2(0), Y2(0), CX(0), CY(0) { reset(); }
+  LineInfo(int16_t X1_, int16_t Y1_, int16_t X2_, int16_t Y2_) : X1(X1_), Y1(Y1_), X2(X2_), Y2(Y2_), CX(X1_), CY(Y1_) { reset(); }
+  LineInfo(int16_t X1_, int16_t Y1_, int16_t X2_, int16_t Y2_, int16_t CX_, int16_t CY_) : X1(X1_), Y1(Y1_), X2(X2_), Y2(Y2_), CX(CX_), CY(CY_) { reset(); }
+  LineInfo(Point const & p1, Point const & p2) : X1(p1.X), Y1(p1.Y), X2(p2.X), Y2(p2.Y), CX(p1.X), CY(p1.Y) { reset(); }
+  LineInfo(Point const & p1, Point const & p2, Point const & cp) : X1(p1.X), Y1(p1.Y), X2(p2.X), Y2(p2.Y), CX(cp.X), CY(cp.Y) { reset(); }
+
+  void reset() {
+    x = X1;
+    y = Y1;
+    minX = X1;
+    maxX = X1;
+    deltaX = X2 - X1;
+    deltaY = Y2 - Y1;
+    absDeltaX = deltaX < 0 ? -deltaX : deltaX;
+    absDeltaY = deltaY < 0 ? -deltaY : deltaY;
+    sx = deltaX < 0 ? -1 : 1;
+    sy = deltaY < 0 ? -1 : 1;
+    error = absDeltaX - absDeltaY;
+    err = error;
+    int16_t midX = (X1 + X2) / 2;
+    int16_t midY = (Y1 + Y2) / 2;
+    quadrant = getCircleQuadrant(midX - CX, midY - CY);
+    newRowCheck(Y1);
+  }
+
+  void newRowCheck(int16_t _y) {
+    minX = x;
+    maxX = x;
+    hasPixels = (_y >= Y1 && _y <= Y2);
+  }
+
+  void sortByY() {
+    if (Y1 > Y2) {
+      tswap(X1, X2);
+      tswap(Y1, Y2);
+      reset();
+    }
+  }
+
+  /* Walk a distance using Bresenham's algorithm, and return a new line */
+  LineInfo * walkDistance(int16_t distance) {
+    int32_t dSquared = distance * distance;
+    auto dy = -absDeltaY;
+    auto x = 0;
+    auto y = 0;
+    auto err = error;
+    auto e2 = 2 * error;
+    while ((x * x + y * y) < dSquared) {
+      e2 = 2 * err;
+      if (e2 >= dy) {
+        err += dy;
+        x += sx;
+      }
+      if (e2 <= absDeltaX) {
+        err += absDeltaX;
+        y += sy;
+      }
+    }
+    return new LineInfo(X1, Y1, X1 + x, Y1 + y, CX, CY);
+  }
+
+  void walkToY(int16_t newY) {
+    // walks to specific y value - must be used in association with newRowCheck and sortByY
+    // can only be used for incremetal y values, as this assumes we're walking downwards
+    if (sx < 0) return;
+    if (hasPixels && y <= newY) {
+      minX = imin(minX, x);
+      maxX = imax(maxX, x);
+      while (y <= newY) {
+        minX = imin(minX, x);
+        maxX = imax(maxX, x);
+        if (y == Y2 && x == X2) {
+          // end of line reached
+          break;
+        }
+        auto e2 = 2 * err;
+        if (e2 >= -absDeltaY) {
+          err -= absDeltaY;
+          x += sx;
+        }
+        if (e2 <= absDeltaX) {
+          err += absDeltaX;
+          y += sy;
+          if (y <= newY) {
+            minX = x;
+            maxX = x;
+          }
+        }
+      }
+    }
+  }
+
+  int length() {
+    return isqrt(deltaX * deltaX + deltaY * deltaY);
+  }
+};
+
+
+/**
+ * @brief Quadrant info for arc, sector and segment drawing functions.
+ * Used to determine which quadrants to draw in.
+ */
+struct QuadrantInfo {
+  bool  containsStart;  /**< True if the start angle is in this quadrant */
+  bool  containsEnd;    /**< True if the end angle is in this quadrant */
+  bool  showAll;        /**< True if the all this quadrant should be drawn */
+  bool  isEven;         /**< True if the quadrant is even (0 or 2) */
+  bool  noArc;          /**< True if there are no arc points in this quadrant */
+  bool  containsChord;  /**< True if the chord mid-point is in this quadrant */
+  bool  showNothing;    /**< True if nothing should be drawn in this quadrant */
+  bool  startCloserToHorizontal; /**< True if the start angle is closer to horizontal than the end angle, and whether start angle is larger */
+
+  QuadrantInfo(uint8_t quadrant, LineInfo & startInfo, LineInfo & endInfo, uint8_t chordQuadrant = 9) {
+    // work out all our values
+    auto slopeTest = startInfo.absDeltaY * endInfo.absDeltaX;
+    startCloserToHorizontal = slopeTest < (startInfo.absDeltaX * endInfo.absDeltaY);
+    auto startQuadrant = startInfo.quadrant;
+    auto chordMidpointInQuadrant = chordQuadrant == quadrant;
+
+    containsStart = startQuadrant == quadrant;
+    containsEnd = endInfo.quadrant == quadrant;
+
+    // get our end quadrant, and tweak for anticlockwise, incremental values
+    auto endQuadrant = endInfo.quadrant < startQuadrant ? endInfo.quadrant + 4 : endInfo.quadrant;
+    if ((startCloserToHorizontal ^ !(startQuadrant & 1)) && startQuadrant == endQuadrant) {
+      endQuadrant += 4;
+    }
+    if (quadrant < startQuadrant) {
+      quadrant += 4;
+    }
+
+    showAll = quadrant > startQuadrant && quadrant < endQuadrant;
+    isEven = !(quadrant & 1);
+    noArc = (quadrant < startQuadrant) || (quadrant > endQuadrant);
+    containsChord = chordMidpointInQuadrant || containsStart || containsEnd;
+    showNothing = noArc && !containsChord;
+  }
+};
+
+
+/**
+ * @brief Work out whether our arc circumference pixel should be shown in this quadrant
+ */
+bool quadrantContainsArcPixel(QuadrantInfo & quadrant, LineInfo & start, LineInfo & end, int16_t x, int16_t y);
+
+
 
 /**
  * @brief Describes mouse buttons status.

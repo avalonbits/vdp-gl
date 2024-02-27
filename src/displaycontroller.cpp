@@ -746,6 +746,9 @@ void IRAM_ATTR BitmappedDisplayController::execPrimitive(Primitive const & prim,
     case PrimitiveCmd::DrawEllipse:
       drawEllipse(prim.size, updateRect);
       break;
+    case PrimitiveCmd::DrawArc:
+      drawArc(prim.rect, updateRect);
+      break;
     case PrimitiveCmd::Clear:
       updateRect = updateRect.merge(Rect(0, 0, getViewPortWidth() - 1, getViewPortHeight() - 1));
       clear(updateRect);
