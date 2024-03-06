@@ -403,6 +403,13 @@ void VGA4Controller::fillSegment(Rect const & rect, Rect & updateRect)
 }
 
 
+void VGA4Controller::fillSector(Rect const & rect, Rect & updateRect)
+{
+  auto mode = paintState().paintOptions.mode;
+  genericFillSector(rect, updateRect, getPixelLambda(mode), fillRowLambda(mode));
+}
+
+
 void VGA4Controller::clear(Rect & updateRect)
 {
   hideSprites(updateRect);

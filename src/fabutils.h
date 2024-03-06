@@ -331,8 +331,10 @@ struct LineInfo {
     deltaY = Y2 - Y1;
     absDeltaX = deltaX < 0 ? -deltaX : deltaX;
     absDeltaY = deltaY < 0 ? -deltaY : deltaY;
-    sx = deltaX < 0 ? -1 : 1;
-    sy = deltaY < 0 ? -1 : 1;
+    // sx = deltaX < 0 ? -1 : 1;
+    // sy = deltaY < 0 ? -1 : 1;
+    sx = X1 < X2 ? 1 : -1;
+    sy = Y1 <= Y2 ? 1 : -1;
     error = absDeltaX - absDeltaY;
     err = error;
     int16_t midX = (X1 + X2) / 2;
@@ -398,7 +400,8 @@ struct LineInfo {
         }
         if (e2 <= absDeltaX) {
           err += absDeltaX;
-          y += sy;
+          // y += sy;
+          y += 1;
           if (y <= newY) {
             minX = x;
             maxX = x;

@@ -37,6 +37,7 @@
 
 
 #include <functional>
+#include <vector>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -119,6 +120,10 @@ enum PrimitiveCmd : uint8_t {
   // Draw a filled segment from a circle, current position is the center, using current brush color
   // params: rect (providing a startPoint and endPoint)
   FillSegment,
+
+  // Draw a filled sector of a circle, current position is the center, using current brush color
+  // params: rect (providing a startPoint and endPoint)
+  FillSector,
 
   // Fill viewport with brush color
   // params: none
@@ -995,6 +1000,8 @@ protected:
 
   virtual void fillSegment(Rect const & rect, Rect & updateRect) = 0;
 
+  virtual void fillSector(Rect const & rect, Rect & updateRect) = 0;
+
   virtual void clear(Rect & updateRect) = 0;
 
   virtual void VScroll(int scroll, Rect & updateRect) = 0;
@@ -1432,17 +1439,21 @@ protected:
     int maxX = -999999;
     chordDeltaInfo.newRowCheck(y);
 
-    std::function<void()> finishRow = [&minX, &maxX, &y, &err, &clipX1, &clipX2, &clipY1, &clipY2, &chordDeltaInfo, &centerX, &centerY, &pattern, &rawFillRow] () {
-      int row = centerY + y;
+    std::function<void(int, int, int)> drawRow = [&rawFillRow, &clipX1, &clipX2, &pattern] (int row, int minX, int maxX) {
+      if (minX <= clipX2 && maxX >= clipX1) {
+        const int X1 = iclamp(minX, clipX1, clipX2);
+        const int X2 = iclamp(maxX, clipX1, clipX2);
+        rawFillRow(row, X1, X2, pattern);
+      }
+    };
+
+    std::function<void()> finishRow = [&minX, &maxX, &y, &err, &clipX1, &clipX2, &clipY1, &clipY2, &chordDeltaInfo, &centerX, &centerY, &drawRow] () {
+      const int row = centerY + y;
       if (minX <= maxX && row >= clipY1 && row <= clipY2) {
         if (chordDeltaInfo.hasPixels) {
-          int X1 = iclamp(centerX + imin(minX, chordDeltaInfo.minX), clipX1, clipX2);
-          int X2 = iclamp(centerX + imax(maxX, chordDeltaInfo.maxX), clipX1, clipX2);
-          rawFillRow(row, X1, X2, pattern);
+          drawRow(row, centerX + imin(minX, chordDeltaInfo.minX), centerX + imax(maxX, chordDeltaInfo.maxX));
         } else {
-          int X1 = iclamp(centerX + minX, clipX1, clipX2);
-          int X2 = iclamp(centerX + maxX, clipX1, clipX2);
-          rawFillRow(row, X1, X2, pattern);
+          drawRow(row, centerX + minX, centerX + maxX);
         }
       }
       err += ++y*2+1;
@@ -1503,8 +1514,281 @@ protected:
           err += ++x*2+1;
         }/* e_xy+e_x > 0 or no 2nd y-step */
       } while (x < 0);
+      finishRow();
     }
-    finishRow();
+  }
+
+
+  // Sector drawn using modified Alois Zingl's algorith, which is a modified Bresenham's algorithm
+  template <typename TPreparePixel, typename TRawFillRow>
+  void genericFillSector(Rect const & rect, Rect & updateRect, TPreparePixel preparePixel, TRawFillRow rawFillRow)
+  {
+    auto pattern = preparePixel(getActualBrushColor());
+
+    const int clipX1 = paintState().absClippingRect.X1;
+    const int clipY1 = paintState().absClippingRect.Y1;
+    const int clipX2 = paintState().absClippingRect.X2;
+    const int clipY2 = paintState().absClippingRect.Y2;
+
+    const int centerX = paintState().position.X;
+    const int centerY = paintState().position.Y;
+
+    LineInfo startInfo = LineInfo(centerX, centerY, rect.X1, rect.Y1);
+    LineInfo endInfo = LineInfo(centerX, centerY, rect.X2, rect.Y2);
+    const int radius = startInfo.length();
+
+    QuadrantInfo quadrants[4] = {
+      QuadrantInfo(0, startInfo, endInfo),
+      QuadrantInfo(1, startInfo, endInfo),
+      QuadrantInfo(2, startInfo, endInfo),
+      QuadrantInfo(3, startInfo, endInfo)
+    };
+
+    LineInfo startLine = LineInfo(0, 0, startInfo.deltaX, startInfo.deltaY);
+    LineInfo endWalked = endInfo.walkDistance(radius);
+    LineInfo endLine = LineInfo(0, 0, endWalked.deltaX, endWalked.deltaY);
+    const bool startLeftmost = startLine.deltaX < endLine.deltaX;
+    startLine.sortByY();
+    endLine.sortByY();
+
+    // Simplistic updateRect, using whole bounding box of circle
+    updateRect = updateRect.merge(Rect(centerX - radius, centerY - radius, centerX + radius, centerY + radius));
+    hideSprites(updateRect);
+
+    int r = radius;
+    int x = 0;
+    int y = -r;
+    int err = 2 - 2*r;
+    int lMinX = 999999;
+    int lMaxX = -999999;
+    int rMinX = 999999;
+    int rMaxX = -999999;
+    startLine.newRowCheck(y);
+    endLine.newRowCheck(y);
+    bool shownLeftEdge = false;
+    bool shownRightEdge = false;
+    bool shownStartLine = false;
+    bool shownEndLine = false;
+
+    std::function<void(int, int, int)> drawRow = [&rawFillRow, &clipX1, &clipX2, &pattern] (int row, int minX, int maxX) {
+      if (minX <= clipX2 && maxX >= clipX1) {
+        const int X1 = iclamp(minX, clipX1, clipX2);
+        const int X2 = iclamp(maxX, clipX1, clipX2);
+        rawFillRow(row, X1, X2, pattern);
+      }
+    };
+
+    // finishRow will draw a row if it's inside the clipping rectangle, and advance to the next row
+    // for drawing, the most important line is the circle outline
+    // start/end lines will only be drawn if they are inside the outline
+    std::function<void(bool const)> finishRow = [
+      &startLeftmost, &shownLeftEdge, &shownRightEdge, &shownStartLine, &shownEndLine,
+      &lMinX, &lMaxX, &rMinX, &rMaxX, &y, &err, 
+      &clipX1, &clipX2, &clipY1, &clipY2, &startLine, &endLine, 
+      &centerX, &centerY, &pattern, &drawRow
+    ] (bool const upperHalf) {
+      int const row = centerY + y;
+      bool const hasLeftEdge = lMinX <= 0;
+      bool const hasRightEdge = rMaxX >= 0;
+      std::vector<int> rowPixels;
+
+      if (row >= clipY1 && row <= clipY2 && (hasLeftEdge || hasRightEdge || startLine.hasPixels || endLine.hasPixels)) {
+        if (hasLeftEdge) {
+          rowPixels.push_back(lMinX);
+        }
+
+        bool hasStartLine = startLine.hasPixels;
+        bool hasEndLine = endLine.hasPixels;        
+
+        // keep track of whether we've shown the left or right edge of circle
+        shownLeftEdge = shownLeftEdge || hasLeftEdge;
+        shownRightEdge = shownRightEdge || hasRightEdge;
+
+        // work out if we should _really_ be drawing start/end lines
+        // lines can be slightly too long owing to integer rounding issues
+        if (upperHalf) {
+          // in the upper half, we need to prevent start/end lines from being drawn if they are outside the circle
+          // so for new lines only we check to see if there is an edge on that side of the circle
+          if (hasStartLine && !shownStartLine) {
+            hasStartLine = startLine.x < 0 ? hasLeftEdge : hasRightEdge;
+          }
+          if (hasEndLine && !shownEndLine) {
+            hasEndLine = endLine.x < 0 ? hasLeftEdge : hasRightEdge;
+          }
+        } else {
+          // in the lower half we need to stop drawing start/end lines if they are outside the circle
+          // care must be taken tho to ensure we draw lines that just fill between start and end lines
+          // so this means stopping lines when corresponding edge had been shown and no longer exists
+          if (shownLeftEdge && !hasLeftEdge) {
+            if (hasEndLine && endLine.x < 0 && (!hasRightEdge || !startLeftmost)) {
+              hasEndLine = false;
+            }
+            if (hasStartLine && startLine.x < 0 && (!hasRightEdge || startLeftmost)) {
+              hasStartLine = false;
+            }
+          }
+          
+          if (shownRightEdge && !hasRightEdge) {
+            if (hasEndLine && startLeftmost && endLine.x > 0) {
+              hasEndLine = false;
+            }
+            if (hasStartLine && !startLeftmost && startLine.x > 0) {
+              hasStartLine = false;
+            }
+          }
+        }
+        
+        shownStartLine = shownStartLine || hasStartLine;
+        shownEndLine = shownEndLine || hasEndLine;
+
+        if (hasStartLine) {
+          if (hasEndLine) {
+            // if we're in the upper half, then having start line leftmost means we have two parts to the row
+            // or in the bottom half, rightmost means we have two parts to the row
+            auto const firstLine = startLeftmost ? startLine : endLine;
+            auto const secondLine = startLeftmost ? endLine : startLine;
+
+            if (hasStartLine && hasEndLine && hasLeftEdge && hasRightEdge && (startLeftmost ^ !upperHalf)) {
+              // there are two parts to the row
+              // we may have started a line, but not finished it
+              if (!hasLeftEdge) {
+                // first line
+                rowPixels.push_back(firstLine.minX);
+              }
+              // close off first line
+              rowPixels.push_back(firstLine.maxX);
+
+              // then push left edge of right-most line
+              rowPixels.push_back(hasRightEdge ? imin(secondLine.minX, rMinX) : secondLine.minX);
+              rowPixels.push_back(hasRightEdge ? rMaxX : secondLine.maxX);
+            } else {
+              // there is only one part to the row
+              // which should be first line to second line
+              if (!hasLeftEdge) {
+                rowPixels.push_back(firstLine.minX);
+              }
+              rowPixels.push_back(hasRightEdge ? rMaxX : secondLine.maxX);
+            }
+          } else {
+            // have start line, but no end line
+            if (!hasLeftEdge) {
+              rowPixels.push_back(startLine.minX);
+            }
+
+            rowPixels.push_back(hasRightEdge ? rMaxX : startLine.maxX);
+          }
+        } else if (hasEndLine) {
+          if (!hasLeftEdge) {
+            rowPixels.push_back(endLine.minX);
+          }
+          rowPixels.push_back(hasRightEdge ? rMaxX : endLine.maxX);
+        } else {
+          // no start or end lines
+          if (hasRightEdge) {
+            if (!hasLeftEdge) {
+              rowPixels.push_back(rMinX);
+            }
+            rowPixels.push_back(rMaxX);
+          }
+        }
+
+        if (rowPixels.size() % 2 == 1) {
+          if (hasLeftEdge) {
+            rowPixels.push_back(lMaxX);
+          } else {
+            // double up on last pixel just to make sure we have a "line"
+            // in principle this shouldn't be possible, but just in case
+            rowPixels.push_back(rowPixels[rowPixels.size() - 1]);
+          }
+        }
+        
+        if (rowPixels.size() >= 2) {
+          if (rowPixels.size() == 4 && rowPixels[1] == rowPixels[2]) {
+            // conjoining lines, so just draw one line
+            drawRow(row, centerX + rowPixels[0], centerX + rowPixels[3]);
+          } else {
+            drawRow(row, centerX + rowPixels[0], centerX + rowPixels[1]);
+            if (rowPixels.size() == 4) {
+              drawRow(row, centerX + rowPixels[2], centerX + rowPixels[3]);
+            }
+          }
+        }
+      }
+
+      err += ++y*2+1;
+      lMinX = 999999;
+      lMaxX = -999999;
+      rMinX = 999999;
+      rMaxX = -999999;
+      startLine.newRowCheck(y);
+      endLine.newRowCheck(y);
+    };
+
+    // we can skip showing top half of circle if segment is entirely in the bottom half
+    if (quadrants[0].showNothing && quadrants[1].showNothing) {
+      // Skip top half
+      y = 0;
+      startLine.newRowCheck(y);
+      endLine.newRowCheck(y);
+    } else {
+      do {
+        if (quadrantContainsArcPixel(quadrants[0], startInfo, endInfo, x, y)) {
+          rMinX = imin(rMinX, x);
+          rMaxX = imax(rMaxX, x);
+        }
+        if (quadrantContainsArcPixel(quadrants[1], startInfo, endInfo, -x, y)) {
+          lMinX = imin(lMinX, -x);
+          lMaxX = imax(lMaxX, -x);
+        }
+        startLine.walkToY(y);
+        endLine.walkToY(y);
+
+        r = err;
+        if (r <= x) {
+          x += 1;
+          err += x*2+1;           /* e_xy+e_x < 0 */
+        }
+        if (r > y || err > x) {
+          finishRow(true);
+        }/* e_xy+e_y > 0 or no 2nd y-step */
+      } while (y < 0);
+    }
+
+    shownLeftEdge = false;
+    shownRightEdge = false;
+
+    // draw lower half - this time walking from x = -r to x = 0
+    if (quadrants[2].showNothing && quadrants[3].showNothing) {
+      // skip the bottom
+      // y = radius;
+      finishRow(true);
+    } else {
+      r = radius;
+      x = -radius;
+      y = 0;
+      err = 2 - 2*r; /* II. Quadrant */ 
+      do {
+        if (quadrantContainsArcPixel(quadrants[2], startInfo, endInfo, x, y)) {
+          lMinX = imin(lMinX, x);
+          lMaxX = imax(lMaxX, x);
+        }
+        if (quadrantContainsArcPixel(quadrants[3], startInfo, endInfo, -x, y)) {
+          rMinX = imin(rMinX, -x);
+          rMaxX = imax(rMaxX, -x);
+        }
+        startLine.walkToY(y);
+        endLine.walkToY(y);
+
+        r = err;
+        if (r <= y) {
+          finishRow(false);
+        }
+        if (r > x || err > y) {
+          err += ++x*2+1;
+        }/* e_xy+e_x > 0 or no 2nd y-step */
+      } while (x < 0);
+      finishRow(false);
+    }
   }
 
 

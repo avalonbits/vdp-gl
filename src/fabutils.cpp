@@ -387,7 +387,7 @@ uint8_t getCircleQuadrant(int x, int y) {
     }
     return 1;
   }
-  if (y < 0) {
+  if (y <= 0) {
     return 0;
   }
   return 3;
@@ -403,17 +403,17 @@ bool quadrantContainsArcPixel(QuadrantInfo & quadrant, LineInfo & start, LineInf
     if (quadrant.containsStart) {
       auto slopeTest = start.absDeltaY * abs(x);
       if (quadrant.isEven) {
-        drawing = slopeTest < (start.absDeltaX * abs(y));
+        drawing = slopeTest <= (start.absDeltaX * abs(y));
       } else {
-        drawing = slopeTest > (start.absDeltaX * abs(y));
+        drawing = slopeTest >= (start.absDeltaX * abs(y));
       }
       if (quadrant.containsEnd) {
         slopeTest = end.absDeltaY * abs(x);
         bool drawingEnd = false;
         if (quadrant.isEven) {
-          drawingEnd = (slopeTest > (end.absDeltaX * abs(y)));
+          drawingEnd = (slopeTest >= (end.absDeltaX * abs(y)));
         } else {
-          drawingEnd = (slopeTest < (end.absDeltaX * abs(y)));
+          drawingEnd = (slopeTest <= (end.absDeltaX * abs(y)));
         }
         if (quadrant.containsStart && quadrant.containsEnd) {
           if (quadrant.startCloserToHorizontal ^ quadrant.isEven) {
@@ -426,9 +426,9 @@ bool quadrantContainsArcPixel(QuadrantInfo & quadrant, LineInfo & start, LineInf
     } else if (quadrant.containsEnd) {
       auto slopeTest = end.absDeltaY * abs(x);
       if (quadrant.isEven) {
-        return slopeTest > (end.absDeltaX * abs(y));
+        return slopeTest >= (end.absDeltaX * abs(y));
       } else {
-        return slopeTest < (end.absDeltaX * abs(y));
+        return slopeTest <= (end.absDeltaX * abs(y));
       }
     }
   }

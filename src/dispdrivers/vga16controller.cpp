@@ -385,6 +385,13 @@ void VGA16Controller::fillSegment(Rect const & rect, Rect & updateRect)
 }
 
 
+void VGA16Controller::fillSector(Rect const & rect, Rect & updateRect)
+{
+  auto mode = paintState().paintOptions.mode;
+  genericFillSector(rect, updateRect, getPixelLambda(mode), fillRowLambda(mode));
+}
+
+
 void VGA16Controller::clear(Rect & updateRect)
 {
   hideSprites(updateRect);
