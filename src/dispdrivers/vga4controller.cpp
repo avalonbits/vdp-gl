@@ -389,6 +389,27 @@ void VGA4Controller::drawEllipse(Size const & size, Rect & updateRect)
 }
 
 
+void VGA4Controller::drawArc(Rect const & rect, Rect & updateRect)
+{
+  auto mode = paintState().paintOptions.mode;
+  genericDrawArc(rect, updateRect, getPixelLambda(mode), setPixelLambda(mode));
+}
+
+
+void VGA4Controller::fillSegment(Rect const & rect, Rect & updateRect)
+{
+  auto mode = paintState().paintOptions.mode;
+  genericFillSegment(rect, updateRect, getPixelLambda(mode), fillRowLambda(mode));
+}
+
+
+void VGA4Controller::fillSector(Rect const & rect, Rect & updateRect)
+{
+  auto mode = paintState().paintOptions.mode;
+  genericFillSector(rect, updateRect, getPixelLambda(mode), fillRowLambda(mode));
+}
+
+
 void VGA4Controller::clear(Rect & updateRect)
 {
   hideSprites(updateRect);

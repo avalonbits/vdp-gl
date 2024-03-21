@@ -318,6 +318,50 @@ public:
   void setLineEnds(LineEnds value);
 
   /**
+   * @brief Sets line pattern
+   * 
+   * @param value Line pattern.
+   * 
+   * Example:
+   * 
+   *    Canvas.setLinePattern(pattern)
+  */
+  void setLinePattern(LinePattern & value);
+
+  /**
+   * @brief Sets line pattern length
+   * 
+   * @param value Line pattern length.
+   * 
+   * Example:
+   * 
+   *   Canvas.setLinePatternLength(length)
+  */
+  void setLinePatternLength(uint8_t value);
+
+  /**
+   * @brief Sets offset position within the line pattern
+   * 
+   * @param value offset position.
+   * 
+   * Example:
+   * 
+   *    Canvas.setLinePatternOffset(position)
+  */
+  void setLinePatternOffset(uint8_t value);
+
+  /**
+   * @brief Sets line drawing options
+   * 
+   * @param value Line drawing options.
+   * 
+   * Example:
+   * 
+   *    Canvas.setLineOptions(LineOptions().Antialias(true).Smooth(true));
+   */
+  void setLineOptions(LineOptions value);
+
+  /**
    * @brief Fills a single pixel with the pen color.
    *
    * @param X Horizontal pixel position.
@@ -485,6 +529,46 @@ public:
    *     Canvas.drawEllipse(100, 100, 40, 40);
    */
   void drawEllipse(int X, int Y, int width, int height);
+
+  /**
+   * @brief Draws an anticlockwise arc of a circle specifying center, start and endpoints, using current pen color.
+   * 
+   * @param X Horizontal coordinate of the circle center.
+   * @param Y Vertical coordinate of the circle center.
+   * @param X1 Horizontal coordinate of the start point.
+   * @param Y1 Vertical coordinate of the start point.
+   * @param X2 Horizontal coordinate of the end point.
+   * @param Y2 Vertical coordinate of the end point.
+  */
+  void drawArc(int X, int Y, int X1, int Y1, int X2, int Y2);
+
+  /**
+   * @brief Draws a filled segment of a circle specifying center, start and endpoints, using current brush color.
+   *        The circle arc is drawn anticlockwise.
+   *        The endpoint is used to work out the angle to the end point of the arc, rather than being on the arc itself.
+   * 
+   * @param X Horizontal coordinate of the circle center.
+   * @param Y Vertical coordinate of the circle center.
+   * @param X1 Horizontal coordinate of the start point.
+   * @param Y1 Vertical coordinate of the start point.
+   * @param X2 Horizontal coordinate of the end point.
+   * @param Y2 Vertical coordinate of the end point.
+  */
+  void fillSegment(int X, int Y, int X1, int Y1, int X2, int Y2);
+
+  /**
+   * @brief Draws a filled sector of a circle specifying center, start and endpoints, using current brush color.
+   *        The circle arc is drawn anticlockwise.
+   *        The endpoint is used to work out the angle to the end point of the arc, rather than being on the arc itself.
+   * 
+   * @param X Horizontal coordinate of the circle center.
+   * @param Y Vertical coordinate of the circle center.
+   * @param X1 Horizontal coordinate of the start point.
+   * @param Y1 Vertical coordinate of the start point.
+   * @param X2 Horizontal coordinate of the end point.
+   * @param Y2 Vertical coordinate of the end point.
+  */
+  void fillSector(int X, int Y, int X1, int Y1, int X2, int Y2);
 
   /**
    * @brief Fills an ellipse specifying center and size, using current brush color.

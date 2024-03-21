@@ -361,6 +361,27 @@ void IRAM_ATTR VGAController::drawEllipse(Size const & size, Rect & updateRect)
 }
 
 
+void IRAM_ATTR VGAController::drawArc(Rect const & rect, Rect & updateRect)
+{
+  auto mode = paintState().paintOptions.mode;
+  genericDrawArc(rect, updateRect, getPixelLambda(mode), setPixelLambda(mode));
+}
+
+
+void IRAM_ATTR VGAController::fillSegment(Rect const & rect, Rect & updateRect)
+{
+  auto mode = paintState().paintOptions.mode;
+  genericFillSegment(rect, updateRect, getPixelLambda(mode), fillRowLambda(mode));
+}
+
+
+void IRAM_ATTR VGAController::fillSector(Rect const & rect, Rect & updateRect)
+{
+  auto mode = paintState().paintOptions.mode;
+  genericFillSector(rect, updateRect, getPixelLambda(mode), fillRowLambda(mode));
+}
+
+
 void IRAM_ATTR VGAController::clear(Rect & updateRect)
 {
   hideSprites(updateRect);

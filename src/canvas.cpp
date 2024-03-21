@@ -237,6 +237,42 @@ void Canvas::setLineEnds(LineEnds value)
 }
 
 
+void Canvas::setLinePattern(LinePattern & value)
+{
+  Primitive p;
+  p.cmd = PrimitiveCmd::SetLinePattern;
+  p.linePattern = value;
+  m_displayController->addPrimitive(p);
+}
+
+
+void Canvas::setLinePatternLength(uint8_t value)
+{
+  Primitive p;
+  p.cmd = PrimitiveCmd::SetLinePatternLength;
+  p.ivalue = value;
+  m_displayController->addPrimitive(p);
+}
+
+
+void Canvas::setLinePatternOffset(uint8_t value)
+{
+  Primitive p;
+  p.cmd = PrimitiveCmd::SetLinePatternOffset;
+  p.ivalue = value;
+  m_displayController->addPrimitive(p);
+}
+
+
+void Canvas::setLineOptions(LineOptions options)
+{
+  Primitive p;
+  p.cmd = PrimitiveCmd::SetLineOptions;
+  p.lineOptions = options;
+  m_displayController->addPrimitive(p);
+}
+
+
 void Canvas::setBrushColor(RGB888 const & color)
 {
   Primitive p;
@@ -335,6 +371,48 @@ void Canvas::drawEllipse(int X, int Y, int width, int height)
   Primitive p;
   p.cmd  = PrimitiveCmd::DrawEllipse;
   p.size = Size(width, height);
+  m_displayController->addPrimitive(p);
+}
+
+
+void Canvas::drawArc(int X, int Y, int X1, int Y1, int X2, int Y2)
+{
+  moveTo(X, Y);
+  Primitive p;
+  p.cmd  = PrimitiveCmd::DrawArc;
+  // Use a Rect as a convenience to pass 2 points
+  // NB arc is always drawn anti-clockwise, with X1,Y1 as the start point
+  // and X2,Y2 as the end point, which is used to calculate the angle
+  // (i.e. the end point does not have to lie on circumference)
+  p.rect = Rect(X1, Y1, X2, Y2);
+  m_displayController->addPrimitive(p);
+}
+
+
+void Canvas::fillSegment(int X, int Y, int X1, int Y1, int X2, int Y2)
+{
+  moveTo(X, Y);
+  Primitive p;
+  p.cmd  = PrimitiveCmd::FillSegment;
+  // Use a Rect as a convenience to pass 2 points
+  // NB arc is always drawn anti-clockwise, with X1,Y1 as the start point
+  // and X2,Y2 as the end point, which is used to calculate the angle
+  // (i.e. the end point does not have to lie on circumference)
+  p.rect = Rect(X1, Y1, X2, Y2);
+  m_displayController->addPrimitive(p);
+}
+
+
+void Canvas::fillSector(int X, int Y, int X1, int Y1, int X2, int Y2)
+{
+  moveTo(X, Y);
+  Primitive p;
+  p.cmd  = PrimitiveCmd::FillSector;
+  // Use a Rect as a convenience to pass 2 points
+  // NB arc is always drawn anti-clockwise, with X1,Y1 as the start point
+  // and X2,Y2 as the end point, which is used to calculate the angle
+  // (i.e. the end point does not have to lie on circumference)
+  p.rect = Rect(X1, Y1, X2, Y2);
   m_displayController->addPrimitive(p);
 }
 
